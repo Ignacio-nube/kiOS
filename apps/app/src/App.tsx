@@ -4,23 +4,26 @@
  * Venta, la tarea dominante.
  */
 import { useState } from "react";
-import { ShoppingCart, Package, Boxes, Receipt, Settings } from "lucide-react";
+import { ShoppingCart, Package, Boxes, Receipt, BarChart3, Settings, Maximize2, Minimize2 } from "lucide-react";
 import { AppProvider, useApp } from "./lib/app-context";
+import { useFullscreen } from "./lib/use-fullscreen";
 import { Toaster } from "./ui/shadcn/sonner";
 import { cn } from "./lib/utils";
 import { VentaScreen } from "./features/venta/VentaScreen";
 import { ProductosScreen } from "./features/productos/ProductosScreen";
 import { StockScreen } from "./features/stock/StockScreen";
 import { VentasDiaScreen } from "./features/ventas-dia/VentasDiaScreen";
+import { ReportesScreen } from "./features/reportes/ReportesScreen";
 import { ConfiguracionScreen } from "./features/configuracion/ConfiguracionScreen";
 
-type Screen = "venta" | "productos" | "stock" | "hoy" | "configuracion";
+type Screen = "venta" | "productos" | "stock" | "hoy" | "reportes" | "configuracion";
 
 const NAV_ITEMS: { id: Screen; label: string; icon: typeof ShoppingCart }[] = [
   { id: "venta", label: "Venta", icon: ShoppingCart },
   { id: "productos", label: "Productos", icon: Package },
   { id: "stock", label: "Stock", icon: Boxes },
   { id: "hoy", label: "Hoy", icon: Receipt },
+  { id: "reportes", label: "Reportes", icon: BarChart3 },
   { id: "configuracion", label: "Config.", icon: Settings },
 ];
 
@@ -64,6 +67,8 @@ function DemoBanner() {
 }
 
 function NavRail({ active, onChange }: { active: Screen; onChange: (screen: Screen) => void }) {
+  const { isFullscreen, toggle } = useFullscreen();
+
   return (
     <nav className="flex w-20 shrink-0 flex-col items-center gap-1 border-r border-line bg-surface py-4">
       <div className="mb-3">
@@ -82,6 +87,15 @@ function NavRail({ active, onChange }: { active: Screen; onChange: (screen: Scre
           {label}
         </button>
       ))}
+
+      <button
+        onClick={() => void toggle()}
+        className="mt-auto flex w-16 flex-col items-center gap-1 rounded-lg py-2 text-[11px] font-medium text-muted-ink transition-colors hover:bg-muted hover:text-ink"
+        title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
+      >
+        {isFullscreen ? <Minimize2 className="size-5" /> : <Maximize2 className="size-5" />}
+        {isFullscreen ? "Salir" : "Ampliar"}
+      </button>
     </nav>
   );
 }
@@ -99,6 +113,7 @@ function Shell() {
           {screen === "productos" && <ProductosScreen onGoToActivation={() => setScreen("configuracion")} />}
           {screen === "stock" && <StockScreen />}
           {screen === "hoy" && <VentasDiaScreen />}
+          {screen === "reportes" && <ReportesScreen />}
           {screen === "configuracion" && <ConfiguracionScreen />}
         </div>
       </div>

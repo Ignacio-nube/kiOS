@@ -6,7 +6,9 @@
  */
 import type { SqlDriver } from "../driver";
 import type { RepoContext } from "../context";
-import type { DateRange, Sale, SaleInput, SaleItem, SalePayment, SaleWithItems } from "../types";
+import type {
+  DateRange, PaymentBreakdownEntry, Sale, SaleInput, SaleItem, SalePayment, SaleWithItems, TopProduct,
+} from "../types";
 import type { PaymentMethod } from "../../domain/ticket";
 import { insertMovement } from "./products";
 
@@ -52,11 +54,16 @@ function mapItem(row: SaleItemRow): SaleItem {
 
 export interface SalesRepo {
   registerSale(input: SaleInput): Promise<SaleWithItems>;
-  listByRange(range: DateRange, limit?: number, offset?: number): Promise<Sale[]>;
+  /** `paymentMethod` filtra a ventas pagadas con ese medio (para Reportes). */
+  listByRange(range: DateRange, limit?: number, offset?: number, paymentMethod?: PaymentMethod): Promise<Sale[]>;
   getWithItems(id: string): Promise<SaleWithItems | null>;
   voidSale(id: string, reason?: string): Promise<void>;
   /** Total y cantidad de ventas NO anuladas del rango. */
-  totalsByRange(range: DateRange): Promise<{ count: number; totalCents: number }>;
+  totalsByRange(range: DateRange, paymentMethod?: PaymentMethod): Promise<{ count: number; totalCents: number }>;
+  /** Ranking por facturación; `categoryId` filtra por la categoría ACTUAL del producto. */
+  topProducts(range: DateRange, opts?: { categoryId?: string; limit?: number }): Promise<TopProduct[]>;
+  /** Facturación agrupada por medio de pago, excluyendo ventas anuladas. */
+  paymentBreakdown(range: DateRange): Promise<PaymentBreakdownEntry[]>;
 }
 
 export function createSalesRepo(driver: SqlDriver, ctx: RepoContext): SalesRepo {
@@ -158,12 +165,20 @@ export function createSalesRepo(driver: SqlDriver, ctx: RepoContext): SalesRepo 
       return sale;
     },
 
-    async listByRange(range, limit = 100, offset = 0) {
+    async listByRange(range, limit = 100, offset = 0, paymentMethod) {
+      const paymentFilter = paymentMethod
+        ? `AND EXISTS (SELECT 1 FROM sale_payments sp WHERE sp.sale_id = sales.id
+             AND sp.method = ? AND sp.deleted_at IS NULL)`
+        : "";
+      const params: unknown[] = [range.from, range.to];
+      if (paymentMethod) params.push(paymentMethod);
+      params.push(limit, offset);
+
       const rows = await driver.select<SaleRow>(
         `SELECT id, total_cents, voided_at, void_reason, created_at FROM sales
-         WHERE deleted_at IS NULL AND created_at >= ? AND created_at < ?
+         WHERE deleted_at IS NULL AND created_at >= ? AND created_at < ? ${paymentFilter}
          ORDER BY created_at DESC LIMIT ? OFFSET ?`,
-        [range.from, range.to, limit, offset],
+        params,
       );
       return rows.map(mapSale);
     },
@@ -198,13 +213,65 @@ export function createSalesRepo(driver: SqlDriver, ctx: RepoContext): SalesRepo 
       });
     },
 
-    async totalsByRange(range) {
+    async totalsByRange(range, paymentMethod) {
+      const paymentFilter = paymentMethod
+        ? `AND EXISTS (SELECT 1 FROM sale_payments sp WHERE sp.sale_id = sales.id
+             AND sp.method = ? AND sp.deleted_at IS NULL)`
+        : "";
+      const params: unknown[] = [range.from, range.to];
+      if (paymentMethod) params.push(paymentMethod);
+
       const rows = await driver.select<{ count: number; total: number | null }>(
         `SELECT COUNT(*) AS count, SUM(total_cents) AS total FROM sales
-         WHERE deleted_at IS NULL AND voided_at IS NULL AND created_at >= ? AND created_at < ?`,
-        [range.from, range.to],
+         WHERE deleted_at IS NULL AND voided_at IS NULL AND created_at >= ? AND created_at < ? ${paymentFilter}`,
+        params,
       );
       return { count: rows[0]?.count ?? 0, totalCents: rows[0]?.total ?? 0 };
+    },
+
+    async topProducts(range, opts) {
+      const categoryFilter = opts?.categoryId ? "AND p.category_id = ?" : "";
+      const params: unknown[] = [range.from, range.to];
+      if (opts?.categoryId) params.push(opts.categoryId);
+      params.push(opts?.limit ?? 10);
+
+      const rows = await driver.select<{
+        product_id: string;
+        product_name: string;
+        qty: number;
+        revenue_cents: number;
+      }>(
+        `SELECT si.product_id AS product_id,
+                COALESCE(p.name, MIN(si.product_name)) AS product_name,
+                SUM(si.qty) AS qty,
+                SUM(si.unit_price_cents * si.qty) AS revenue_cents
+         FROM sale_items si
+         JOIN sales s ON s.id = si.sale_id
+         LEFT JOIN products p ON p.id = si.product_id
+         WHERE s.deleted_at IS NULL AND s.voided_at IS NULL AND si.deleted_at IS NULL
+           AND s.created_at >= ? AND s.created_at < ? ${categoryFilter}
+         GROUP BY si.product_id
+         ORDER BY revenue_cents DESC
+         LIMIT ?`,
+        params,
+      );
+      return rows.map((r): TopProduct => ({
+        productId: r.product_id, productName: r.product_name, qty: r.qty, revenueCents: r.revenue_cents,
+      }));
+    },
+
+    async paymentBreakdown(range) {
+      const rows = await driver.select<{ method: PaymentMethod; total_cents: number }>(
+        `SELECT sp.method AS method, SUM(sp.amount_cents) AS total_cents
+         FROM sale_payments sp
+         JOIN sales s ON s.id = sp.sale_id
+         WHERE s.deleted_at IS NULL AND s.voided_at IS NULL AND sp.deleted_at IS NULL
+           AND s.created_at >= ? AND s.created_at < ?
+         GROUP BY sp.method
+         ORDER BY total_cents DESC`,
+        [range.from, range.to],
+      );
+      return rows.map((r): PaymentBreakdownEntry => ({ method: r.method, totalCents: r.total_cents }));
     },
   };
 }

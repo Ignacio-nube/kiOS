@@ -105,3 +105,16 @@ export interface StockMovementInput {
   note?: string;
 }
 
+/** Fila del ranking de productos más vendidos (Reportes). */
+export interface TopProduct {
+  productId: string;
+  productName: string;
+  qty: number;
+  revenueCents: number;
+}
+
+export interface PaymentBreakdownEntry {
+  method: PaymentMethod;
+  totalCents: number;
+}
+
