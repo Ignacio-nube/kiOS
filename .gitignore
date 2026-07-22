@@ -4,6 +4,8 @@ dist-web/
 target/
 .vercel/
 *.local
+.env
+.env.*.local
 .DS_Store
 Thumbs.db
 coverage/
