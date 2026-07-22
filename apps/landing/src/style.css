@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+/* Mismos tokens que la app (kios-design/SKILL.md). */
+@theme {
+  --color-paper: #faf9f7;
+  --color-ink: #0b0b0c;
+  --color-line: #e4e3e0;
+  --color-muted: #6f6e69;
+  --color-brand: #fdbf2d;
+  --color-brand-hover: #f0ae10;
+  --color-brand-ink: #3d2e00;
+  --color-warm: #b45309;
+  --font-sans: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+body {
+  background: var(--color-paper);
+  color: #141413;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}

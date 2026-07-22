@@ -1,0 +1,12 @@
+node_modules/
+dist/
+dist-web/
+target/
+.vercel/
+*.local
+.DS_Store
+Thumbs.db
+coverage/
+playwright-report/
+test-results/
+apps/app/src-tauri/gen/

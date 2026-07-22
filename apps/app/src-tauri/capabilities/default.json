@@ -1,0 +1,18 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Permisos de la ventana principal: SQLite local y backups en AppConfig.",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "sql:default",
+    "sql:allow-execute",
+    "sql:allow-select",
+    "fs:allow-appconfig-read-recursive",
+    "fs:allow-appconfig-write-recursive",
+    "fs:allow-mkdir",
+    "fs:allow-copy-file"
+  ]
+}

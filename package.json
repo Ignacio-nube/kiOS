@@ -1,0 +1,19 @@
+{
+  "name": "kios-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/app",
+    "apps/landing"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w apps/app",
+    "dev:landing": "npm run dev -w apps/landing",
+    "build:web": "npm run build:web -w apps/app",
+    "build:landing": "npm run build -w apps/landing",
+    "tauri": "npm run tauri -w apps/app",
+    "test": "npm test -w apps/app",
+    "bench": "npm run bench -w apps/app",
+    "lint": "npm run lint -w apps/app"
+  }
+}

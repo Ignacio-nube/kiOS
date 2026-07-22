@@ -1,0 +1,118 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/*
+ * Tokens kiOS — ver kios-design/SKILL.md.
+ * Identidad: ámbar kiosco (#FDBF2D, del logo) sobre papel y tinta.
+ * El ámbar se gasta en UNA cosa: cobrar (y el foco). Todo lo demás calla.
+ * Solo tema claro en v1: los mostradores viven con luz.
+ */
+:root {
+  /* paleta propia */
+  --paper: #faf9f7; /* fondo de app: papel, no gris de oficina */
+  --surface: #ffffff;
+  --ink: #141413; /* texto principal */
+  --ink-strong: #0b0b0c; /* pizarra del ticket, igual al logo */
+  --line: #e4e3e0;
+  --muted-ink: #6f6e69;
+  --brand: #fdbf2d; /* ámbar kiosco: SOLO cobrar + foco + marca */
+  --brand-hover: #f0ae10;
+  --brand-ink: #3d2e00; /* texto sobre ámbar */
+  --ok: #1f8a50;
+  --warn: #b45309;
+  --danger: #c0392f;
+
+  /* mapeo shadcn (los componentes generados esperan estos nombres) */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink-strong);
+  --primary-foreground: #ffffff;
+  --secondary: #f1f0ed;
+  --secondary-foreground: var(--ink);
+  --muted: #f1f0ed;
+  --muted-foreground: var(--muted-ink);
+  --accent: #f6f0de;
+  --accent-foreground: var(--ink);
+  --destructive: var(--danger);
+  --destructive-foreground: #ffffff;
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--brand);
+  --radius: 0.75rem;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-strong: var(--ink-strong);
+  --color-line: var(--line);
+  --color-muted-ink: var(--muted-ink);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-ink: var(--brand-ink);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    font-family: var(--font-sans);
+  }
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Dinero y cantidades SIEMPRE tabulares: las columnas no bailan. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
