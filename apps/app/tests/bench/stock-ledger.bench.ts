@@ -50,6 +50,10 @@ describe(`ledger con ${MOVEMENTS.toLocaleString("es-AR")} movimientos`, () => {
     await repos.stock.levelFor("p-42");
   });
 
+  bench("levelsFor de una página de 20 productos (Productos/Stock paginados)", async () => {
+    await repos.stock.levelsFor(Array.from({ length: 20 }, (_, i) => `p-${i}`));
+  });
+
   bench("totales del día (ventas de hoy)", async () => {
     await repos.sales.totalsByRange({ from: "2000-01-01", to: "2100-01-01" });
   });

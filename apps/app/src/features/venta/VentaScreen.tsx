@@ -35,9 +35,26 @@ export function VentaScreen() {
 
   useEffect(() => {
     function onGlobalKeydown(e: KeyboardEvent) {
-      if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && lines.length > 0 && !cobrarOpen) {
+      if (cobrarOpen) return; // el diálogo de cobro tiene su propio input, no le robamos el foco
+
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && lines.length > 0) {
         e.preventDefault();
         setCobrarOpen(true);
+        return;
+      }
+
+      // El lector de barras es un teclado más: tipea el código y manda
+      // Enter. No debería hacer falta clickear el buscador antes — ante
+      // cualquier tecla imprimible, si el foco está en otro lado (o en
+      // ningún lado), lo redirigimos ahí. El focus() corre ANTES de que
+      // el navegador inserte el carácter, así que termina cayendo en el
+      // input recién enfocado en vez de perderse.
+      if (
+        document.activeElement !== inputRef.current &&
+        e.key.length === 1 &&
+        !e.ctrlKey && !e.metaKey && !e.altKey
+      ) {
+        inputRef.current?.focus();
       }
     }
     window.addEventListener("keydown", onGlobalKeydown);

@@ -40,8 +40,9 @@ function mapProduct(row: ProductRow): Product {
 }
 
 export interface ProductsRepo {
-  list(): Promise<Product[]>;
-  search(term: string, limit?: number): Promise<Product[]>;
+  /** Paginado: nunca trae el catálogo entero a memoria. */
+  list(limit?: number, offset?: number): Promise<Product[]>;
+  search(term: string, limit?: number, offset?: number): Promise<Product[]>;
   getById(id: string): Promise<Product | null>;
   getByBarcode(barcode: string): Promise<Product | null>;
   /** Unicidad BLANDA de barcode: el dominio advierte, no bloquea. */
@@ -56,19 +57,21 @@ export interface ProductsRepo {
 
 export function createProductsRepo(driver: SqlDriver, ctx: RepoContext): ProductsRepo {
   return {
-    async list() {
+    async list(limit = 50, offset = 0) {
       const rows = await driver.select<ProductRow>(
-        `SELECT ${PRODUCT_COLUMNS} FROM products WHERE deleted_at IS NULL ORDER BY name COLLATE NOCASE`,
+        `SELECT ${PRODUCT_COLUMNS} FROM products WHERE deleted_at IS NULL
+         ORDER BY name COLLATE NOCASE LIMIT ? OFFSET ?`,
+        [limit, offset],
       );
       return rows.map(mapProduct);
     },
 
-    async search(term, limit = 30) {
+    async search(term, limit = 30, offset = 0) {
       const rows = await driver.select<ProductRow>(
         `SELECT ${PRODUCT_COLUMNS} FROM products
          WHERE deleted_at IS NULL AND (name LIKE ? COLLATE NOCASE OR barcode = ?)
-         ORDER BY name COLLATE NOCASE LIMIT ?`,
-        [`%${term}%`, term, limit],
+         ORDER BY name COLLATE NOCASE LIMIT ? OFFSET ?`,
+        [`%${term}%`, term, limit, offset],
       );
       return rows.map(mapProduct);
     },

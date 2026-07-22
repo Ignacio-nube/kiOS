@@ -66,6 +66,22 @@ describe("productos", () => {
     expect(await repos.products.search("7791234")).toHaveLength(1);
     expect(await repos.products.search("nada")).toHaveLength(0);
   });
+
+  it("list() y search() paginan con limit/offset sin traer todo a memoria", async () => {
+    for (const name of ["Agua", "Bizcochos", "Coca", "Dulce de leche", "Fernet"]) {
+      await seedProduct(name, 1000);
+    }
+    const firstPage = await repos.products.list(2, 0);
+    const secondPage = await repos.products.list(2, 2);
+    const thirdPage = await repos.products.list(2, 4);
+    expect(firstPage.map((p) => p.name)).toEqual(["Agua", "Bizcochos"]);
+    expect(secondPage.map((p) => p.name)).toEqual(["Coca", "Dulce de leche"]);
+    expect(thirdPage.map((p) => p.name)).toEqual(["Fernet"]);
+
+    // De los 5, solo "Agua" y "Coca" contienen "a".
+    expect(await repos.products.search("a", 1, 0)).toEqual([expect.objectContaining({ name: "Agua" })]);
+    expect(await repos.products.search("a", 1, 1)).toEqual([expect.objectContaining({ name: "Coca" })]);
+  });
 });
 
 describe("ventas", () => {
@@ -173,6 +189,19 @@ describe("stock", () => {
     await expect(
       repos.stock.addMovement({ productId: p.id, qtyDelta: 0, type: "adjustment" }),
     ).rejects.toThrow();
+  });
+
+  it("levelsFor trae solo los productos pedidos (una página), no la tabla entera", async () => {
+    const a = await seedProduct("Mate", 3000, { initialStock: 5 });
+    const b = await seedProduct("Bombilla", 8000, { initialStock: 1 });
+    await seedProduct("Termo", 40000, { initialStock: 9 }); // no se pide, no debe aparecer
+
+    const levels = await repos.stock.levelsFor([a.id, b.id]);
+    expect(levels).toHaveLength(2);
+    expect(new Map(levels.map((l) => [l.productId, l.qty]))).toEqual(
+      new Map([[a.id, 5], [b.id, 1]]),
+    );
+    expect(await repos.stock.levelsFor([])).toEqual([]);
   });
 });
 
