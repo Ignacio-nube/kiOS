@@ -115,7 +115,7 @@ export function ReportesScreen() {
               onClick={() => handlePreset(p.id)}
               className={cn(
                 "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                preset === p.id ? "bg-ink-strong text-white" : "bg-muted text-muted-ink hover:text-ink",
+                preset === p.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-ink hover:text-ink",
               )}
             >
               {p.label}

@@ -5,7 +5,10 @@
  * Tokens kiOS — ver kios-design/SKILL.md.
  * Identidad: ámbar kiosco (#FDBF2D, del logo) sobre papel y tinta.
  * El ámbar se gasta en UNA cosa: cobrar (y el foco). Todo lo demás calla.
- * Solo tema claro en v1: los mostradores viven con luz.
+ * Tres temas (Claro/Oscuro/Negro, como en X): el ámbar y los mapeos
+ * semánticos no cambian entre temas, solo la base (paper/surface/ink/
+ * line/muted-ink) — por la indirección de abajo, alcanza con redefinir
+ * esa base en .dark/.black para que todo lo demás se propague solo.
  */
 :root {
   /* paleta propia */
@@ -43,6 +46,48 @@
   --input: var(--line);
   --ring: var(--brand);
   --radius: 0.75rem;
+}
+
+/*
+ * Oscuro y Negro: --ink-strong queda IGUAL de oscuro a propósito (la
+ * pizarra del ticket es un elemento de marca, siempre un cartel oscuro).
+ * Pero eso significa que ya no sirve para "botón que resalta" sobre un
+ * fondo que también es oscuro — por eso --primary se desacopla de
+ * ink-strong acá y pasa a ser el par (ink, paper) invertido: un chip
+ * claro con texto oscuro, el mismo nivel de énfasis que en el tema claro.
+ */
+.dark {
+  --paper: #1c1b19;
+  --surface: #242320;
+  --ink: #ededeb;
+  --line: #38362f;
+  --muted-ink: #a6a399;
+  --secondary: #2c2a26;
+  --muted: #2c2a26;
+  --accent: #3a3226;
+  --ok: #34c77b;
+  --warn: #e08a3c;
+  --danger: #e5564b;
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
+}
+
+/* Negro: OLED, "lights out" — la variante más oscura. */
+.black {
+  --paper: #000000;
+  --surface: #131211;
+  --ink: #f5f3ee;
+  --ink-strong: #171614; /* un pelo más clara que el paper puro: se distingue */
+  --line: #26241f;
+  --muted-ink: #8f8c82;
+  --secondary: #1a1917;
+  --muted: #1a1917;
+  --accent: #2a2318;
+  --ok: #34c77b;
+  --warn: #e08a3c;
+  --danger: #e5564b;
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
 }
 
 @theme inline {

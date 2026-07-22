@@ -4,8 +4,10 @@
  * Venta, la tarea dominante.
  */
 import { useState } from "react";
+import { ThemeProvider } from "next-themes";
 import { ShoppingCart, Package, Boxes, Receipt, BarChart3, Settings, Maximize2, Minimize2 } from "lucide-react";
 import { AppProvider, useApp } from "./lib/app-context";
+import { THEME_STORAGE_KEY } from "./lib/theme-options";
 import { useFullscreen } from "./lib/use-fullscreen";
 import { Toaster } from "./ui/shadcn/sonner";
 import { cn } from "./lib/utils";
@@ -80,7 +82,7 @@ function NavRail({ active, onChange }: { active: Screen; onChange: (screen: Scre
           onClick={() => onChange(id)}
           className={cn(
             "flex w-16 flex-col items-center gap-1 rounded-lg py-2 text-[11px] font-medium transition-colors",
-            active === id ? "bg-ink-strong text-white" : "text-muted-ink hover:bg-muted hover:text-ink",
+            active === id ? "bg-primary text-primary-foreground" : "text-muted-ink hover:bg-muted hover:text-ink",
           )}
         >
           <Icon className="size-5" />
@@ -123,9 +125,16 @@ function Shell() {
 
 export default function App() {
   return (
-    <AppProvider loading={<BootScreen />} error={(message) => <BootScreen message={message} />}>
-      <Shell />
-      <Toaster position="bottom-center" />
-    </AppProvider>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="light"
+      themes={["light", "dark", "black"]}
+      storageKey={THEME_STORAGE_KEY}
+    >
+      <AppProvider loading={<BootScreen />} error={(message) => <BootScreen message={message} />}>
+        <Shell />
+        <Toaster position="bottom-center" />
+      </AppProvider>
+    </ThemeProvider>
   );
 }

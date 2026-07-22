@@ -5,6 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>kiOS</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script>
+      // Evita el flash de tema claro antes de que monte React (next-themes
+      // hace esto mismo en apps Next.js vía SSR; acá lo hacemos a mano).
+      (function () {
+        try {
+          var t = localStorage.getItem("kios-theme");
+          if (t === "dark" || t === "black") document.documentElement.classList.add(t);
+        } catch {
+          // localStorage puede fallar (modo privado, etc.): queda el tema claro.
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -1,11 +1,53 @@
 import { useEffect, useState } from "react";
+import { useTheme } from "next-themes";
+import { Check } from "lucide-react";
 import { toast } from "sonner";
 import { useApp } from "../../lib/app-context";
 import { META_KEYS } from "../../data/bootstrap";
+import { THEME_OPTIONS } from "../../lib/theme-options";
+import { cn } from "../../lib/utils";
 import { Card, CardBody, CardHeader, CardTitle } from "../../ui/card";
 import { Input } from "../../ui/input";
 import { Button } from "../../ui/button";
 import { Badge } from "../../ui/badge";
+
+function AparienciaCard() {
+  // "theme" es lo elegido; puede no estar montado aún en el primer render
+  // (next-themes lee localStorage en un efecto) — se muestra sin selección
+  // hasta entonces, evitando parpadeo de "Claro" marcado por error.
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Apariencia</CardTitle>
+      </CardHeader>
+      <CardBody>
+        <div className="grid grid-cols-3 gap-3">
+          {THEME_OPTIONS.map((opt) => {
+            const selected = theme === opt.id;
+            return (
+              <button
+                key={opt.id}
+                onClick={() => setTheme(opt.id)}
+                className={cn(
+                  "rounded-xl border-2 p-2.5 text-left transition-colors",
+                  selected ? "border-brand" : "border-line hover:border-muted-ink",
+                )}
+                style={{ background: opt.paper }}
+              >
+                <div className="mb-2 flex h-10 items-center justify-end rounded-lg p-1.5" style={{ background: opt.surface }}>
+                  {selected && <Check className="size-4" style={{ color: opt.ink }} />}
+                </div>
+                <span className="text-sm font-medium" style={{ color: opt.ink }}>{opt.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
 
 export function ConfiguracionScreen() {
   const { repos, licenseState, entitlements, refreshLicense } = useApp();
@@ -40,6 +82,8 @@ export function ConfiguracionScreen() {
   return (
     <div className="mx-auto max-w-lg space-y-6 p-6">
       <h1 className="text-xl font-bold tracking-tight">Configuración</h1>
+
+      <AparienciaCard />
 
       <Card>
         <CardHeader>

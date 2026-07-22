@@ -15,7 +15,10 @@ const badgeVariants = cva(
         ok: "bg-ok/10 text-ok",
         warn: "bg-warn/10 text-warn",
         danger: "bg-danger/10 text-danger",
-        brand: "bg-brand/20 text-brand-ink",
+        // Sólido, no wash: brand-ink (oscuro) solo garantiza contraste
+        // sobre ámbar a full opacidad — un wash /20 se vuelve ilegible
+        // en los temas oscuros (mismo combo ya probado del botón "accent").
+        brand: "bg-brand text-brand-ink",
       },
     },
     defaultVariants: { tone: "neutral" },
