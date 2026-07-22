@@ -5,6 +5,9 @@
  */
 import type { PaymentMethod } from "../domain/ticket";
 import type { StockMovementType } from "../domain/stock";
+import type { DateRange } from "../domain/dates";
+
+export type { DateRange };
 
 export interface Category {
   id: string;
@@ -102,9 +105,3 @@ export interface StockMovementInput {
   note?: string;
 }
 
-export interface DateRange {
-  /** ISO inclusive. */
-  from: string;
-  /** ISO exclusive. */
-  to: string;
-}

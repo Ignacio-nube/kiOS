@@ -15,6 +15,7 @@ import { createDriver } from "../data/drivers/detect";
 import { runMigrations } from "../data/migrations/runner";
 import { ensureIdentity, META_KEYS } from "../data/bootstrap";
 import { createRepositories, type Repositories } from "../data/repos";
+import { seedDemoDataIfEmpty } from "../data/seed";
 import { getEntitlements, type Entitlements } from "../domain/entitlements";
 import { verifyLicenseKey, type LicenseState } from "../domain/license";
 
@@ -32,8 +33,12 @@ function bootOnce(): Promise<BootResult> {
     const bundle = await createDriver();
     await runMigrations(bundle.driver);
     const ctx = await ensureIdentity(bundle.driver);
+    const repos = createRepositories(bundle.driver, ctx);
+    if (bundle.kind === "wasm") {
+      await seedDemoDataIfEmpty(repos);
+    }
     return {
-      repos: createRepositories(bundle.driver, ctx),
+      repos,
       isDesktop: bundle.kind === "tauri",
       persisted: bundle.persisted,
     };
