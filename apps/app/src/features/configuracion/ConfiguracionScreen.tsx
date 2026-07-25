@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
-import { Check } from "lucide-react";
+import { Check, Monitor } from "lucide-react";
 import { toast } from "sonner";
 import { useApp } from "../../lib/app-context";
 import { META_KEYS } from "../../data/bootstrap";
@@ -23,7 +23,7 @@ function AparienciaCard() {
         <CardTitle>Apariencia</CardTitle>
       </CardHeader>
       <CardBody>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {THEME_OPTIONS.map((opt) => {
             const selected = theme === opt.id;
             return (
@@ -43,6 +43,24 @@ function AparienciaCard() {
               </button>
             );
           })}
+
+          {/* Sistema: sigue el SO (claro/oscuro). Preview partido en diagonal;
+              el fondo y la etiqueta usan tokens para leerse en cualquier tema. */}
+          <button
+            onClick={() => setTheme("system")}
+            className={cn(
+              "rounded-xl border-2 bg-secondary p-2.5 text-left transition-colors",
+              theme === "system" ? "border-brand" : "border-line hover:border-muted-ink",
+            )}
+          >
+            <div
+              className="mb-2 flex h-10 items-center justify-center overflow-hidden rounded-lg"
+              style={{ background: "linear-gradient(135deg, #f2f2f7 0 50%, #0b0b0c 50% 100%)" }}
+            >
+              <Monitor className="size-5 text-muted-ink" />
+            </div>
+            <span className="text-sm font-medium text-ink">Sistema</span>
+          </button>
         </div>
       </CardBody>
     </Card>

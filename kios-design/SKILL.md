@@ -18,25 +18,37 @@ actualiza el documento — nunca se ignora en silencio.
 
 ## Identidad
 
-- Marca: monograma "k" con punto (`kios_logo_final_color_variants.svg`).
+- Marca: logo kiOS. **Fuente ÚNICA: `logo-kiOS.svg` en la RAÍZ del repo.**
+  Todo lo demás (favicons `.ico`/PNG, apple-touch, set de íconos de
+  escritorio Tauri, el SVG embebido en la app y en la landing) es DERIVADO
+  por `npm run assets` (`scripts/generate-assets.mjs`, usa `sharp` + la CLI
+  de Tauri). Si cambia el logo: se reemplaza ese archivo y se corre el
+  comando — jamás se editan copias a mano. El monograma es un cuadrado
+  ámbar autocontenido: mismo aspecto en los tres temas, sin recolorear.
+  (El SVG viejo `kios_logo_final_color_variants.svg` quedó obsoleto.)
 - **Ámbar kiosco `#FDBF2D`**: el amarillo de marquesina. Es EL acento y se
   gasta en una sola cosa por pantalla: la acción de dinero (Cobrar) y el
   anillo de foco. Si el ámbar aparece dos veces en una vista, sobra una.
-- Tinta `#0B0B0C` / `#141413` sobre papel `#FAF9F7`. Superficies blancas.
-- **Tres temas** (Configuración → Apariencia, como el selector de X):
-  Claro, Oscuro y Negro. El ámbar y los mapeos semánticos NO cambian
-  entre temas — solo la base (paper/surface/ink/line/muted-ink/estados).
+  (El archivo del logo trae su propio ámbar `#FABA24`; el token de UI es
+  `#FDBF2D` y es el que manda en pantalla.)
+- Tinta `#0B0B0C` sobre gris de sistema `#F2F2F7` — paleta NEUTRA tipo
+  Apple, no el papel cálido de antes. Superficies blancas.
+- **Tres temas + Sistema** (Configuración → Apariencia, como el selector de
+  X): Claro, Oscuro, Negro y "Sistema" (sigue el SO, resuelve a claro u
+  oscuro). El ámbar y los mapeos semánticos NO cambian entre temas — solo
+  la base (paper/surface/ink/line/muted-ink/estados). El tema Negro suma el
+  material `glass` (ver "Material glass").
 
 ## Tokens (fuente de verdad: `apps/app/src/index.css`)
 
 | Token | Claro | Oscuro | Negro | Uso |
 |---|---|---|---|---|
-| `--paper` | `#FAF9F7` | `#1C1B19` | `#000000` | fondo de app |
-| `--surface` | `#FFFFFF` | `#242320` | `#131211` | cards, paneles, inputs |
-| `--ink` | `#141413` | `#EDEBE6` | `#F5F3EE` | texto principal |
-| `--ink-strong` | `#0B0B0C` | `#0B0B0C` | `#171614` | pizarra del ticket (fija, ver abajo) |
-| `--line` | `#E4E3E0` | `#38362F` | `#26241F` | bordes hairline |
-| `--muted-ink` | `#6F6E69` | `#A6A399` | `#8F8C82` | texto secundario |
+| `--paper` | `#F2F2F7` | `#0B0B0C` | `#000000` | fondo de app |
+| `--surface` | `#FFFFFF` | `#1C1C1E` | `#121212` | cards, inputs (sólida; el chrome de Negro usa `.glass`) |
+| `--ink` | `#0B0B0C` | `#F2F2F7` | `#F2F2F7` | texto principal |
+| `--ink-strong` | `#0B0B0C` | `#1A1A1C` | `#141414` | pizarra del ticket (ver abajo) |
+| `--line` | `#E0E0E6` | `#2C2C2E` | `#2C2C2E` | bordes hairline |
+| `--muted-ink` | `#6E6E73` | `#98989E` | `#98989E` | texto secundario |
 | `--brand` | `#FDBF2D` | igual | igual | SOLO cobrar + foco + marca |
 | `--brand-hover` | `#F0AE10` | igual | igual | hover del ámbar |
 | `--brand-ink` | `#3D2E00` | igual | igual | texto sobre ámbar (SIEMPRE oscuro) |
@@ -45,9 +57,10 @@ actualiza el documento — nunca se ignora en silencio.
 Radios: `rounded-lg`/`rounded-xl` (el logo usa rx ≈ 22%). Bordes 1px
 `--line`; sombras casi nunca (una superficie sobre papel no flota).
 
-**`--ink-strong` es fija a propósito**: la pizarra del ticket (abajo) es
-un cartel siempre oscuro, en los tres temas — NO se usa como "botón que
-resalta", porque en Oscuro/Negro ya no contrastaría contra el fondo. Para
+**`--ink-strong` es un cartel siempre oscuro**: la pizarra del ticket
+(abajo) es oscura en los tres temas (apenas varía para leerse como panel:
+`#0B0B0C`/`#1A1A1C`/`#141414`). NO se usa como "botón que resalta", porque
+en Oscuro/Negro ya no contrastaría contra el fondo. Para
 eso existe `--primary`/`--primary-foreground` (mapeo semántico, en
 Oscuro/Negro es el par `ink`/`paper` invertido: chip claro, texto oscuro).
 El `Button` variant `primary` y cualquier "ítem activo" (nav rail, chips
@@ -88,19 +101,39 @@ Cobrar (ámbar, `size="xl"`) vive dentro. Nada más compite con él.
 ## Temas: mecanismo
 
 `next-themes` (`ThemeProvider` en `App.tsx`, `attribute="class"`,
-`themes={["light","dark","black"]}`, `storageKey="kios-theme"`). Es
-preferencia de ESTE dispositivo (como el idioma del teclado), no dato de
-negocio: vive en `localStorage`, nunca en la tabla `meta` sincronizable.
-Script anti-flash en `index.html` (lee `localStorage` antes de montar
-React y agrega la clase `dark`/`black` a `<html>` si corresponde).
+`enableSystem`, `themes={["light","dark","black"]}`,
+`storageKey="kios-theme"`, `defaultTheme="light"`). Es preferencia de ESTE
+dispositivo (como el idioma del teclado), no dato de negocio: vive en
+`localStorage`, nunca en la tabla `meta` sincronizable. La opción "Sistema"
+(`setTheme("system")`) sigue `prefers-color-scheme` y resuelve a Claro u
+Oscuro — NUNCA a Negro (Negro es elección manual). Script anti-flash en
+`index.html`: lee `localStorage` antes de montar React; si el valor es
+`dark`/`black` agrega esa clase a `<html>`, y si es `system` consulta
+`matchMedia("(prefers-color-scheme: dark)")` para decidir.
 
-El monograma (`KiosMark` en `App.tsx`, variante "Principal" del logo) es
-un cuadrado ámbar autocontenido — funciona igual en los tres temas sin
-necesidad de swap. Las otras variantes del SVG
-(`kios_logo_final_color_variants.svg`: Modo oscuro, Modo claro, Monocromo)
-quedan disponibles para contextos futuros (landing con tema oscuro,
-impresión, badges de terceros) — no se usan hoy dentro de la app porque
-no hace falta.
+El monograma (`KiosMark` en `App.tsx`) es un `<img>` del logo derivado
+(`src/assets/logo.svg`, copia de la fuente única — ver Identidad): cuadrado
+ámbar autocontenido, mismo aspecto en los tres temas sin swap.
+
+## Material glass (SOLO tema Negro, SOLO chrome)
+
+Vidrio esmerilado tipo Liquid Glass (NO el gloss Aqua de los 2000: sin
+gradiente diagonal ni brillo especular). Vive en la clase `.glass`
+(`index.css`) y se opta-in poniéndola EN LUGAR de `bg-surface`:
+
+- En Claro y Oscuro `.glass` es una superficie sólida normal (`var(--surface)`),
+  sin costo de blur.
+- En Negro (`.black .glass`): tinte de blanco ~10% sobre el negro +
+  `backdrop-filter: blur(20px) saturate(180%)` + filo de luz 1px en el
+  borde superior (`inset 0 1px 0`). Bajo `prefers-reduced-transparency`
+  vuelve a superficie sólida.
+
+**Dónde va**: chrome — nav rail (`App.tsx`) y modales/sheets
+(`DialogContent`). **Dónde NO, sin excepción**: la pantalla de venta. Ahí
+las superficies quedan sólidas y opacas incluso en Negro — el presupuesto
+es 150ms/repintado y `backdrop-filter` cuesta por frame. Si sumás glass a
+un componente nuevo, que sea chrome, y medí el costo en el WebView de Tauri
+(WebView2) antes de aplicarlo ancho: puede rendir distinto a Chrome normal.
 
 ## Componentes
 
@@ -141,6 +174,8 @@ NO SF Symbols. Animación: Motion (`motion/react`), con moderación: el
 - Selector de tema (Configuración → Apariencia): swatches clickeables con
   preview real de color (paper + surface), no un `<Select>` de texto —
   igual patrón que un color picker, el usuario ve el tema antes de tocarlo.
+  Cuatro: Claro/Oscuro/Negro + "Sistema" (preview partido en diagonal
+  claro/oscuro con ícono `Monitor`).
 
 ## Accesibilidad (piso, no techo)
 

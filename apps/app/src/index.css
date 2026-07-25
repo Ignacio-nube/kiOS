@@ -11,13 +11,13 @@
  * esa base en .dark/.black para que todo lo demás se propague solo.
  */
 :root {
-  /* paleta propia */
-  --paper: #faf9f7; /* fondo de app: papel, no gris de oficina */
-  --surface: #ffffff;
-  --ink: #141413; /* texto principal */
-  --ink-strong: #0b0b0c; /* pizarra del ticket, igual al logo */
-  --line: #e4e3e0;
-  --muted-ink: #6f6e69;
+  /* paleta propia — neutros de sistema (Apple-style), acento ámbar kiosco */
+  --paper: #f2f2f7; /* fondo de app */
+  --surface: #ffffff; /* cards, paneles, inputs */
+  --ink: #0b0b0c; /* texto principal */
+  --ink-strong: #0b0b0c; /* pizarra del ticket (fija, ver abajo) */
+  --line: #e0e0e6;
+  --muted-ink: #6e6e73;
   --brand: #fdbf2d; /* ámbar kiosco: SOLO cobrar + foco + marca */
   --brand-hover: #f0ae10;
   --brand-ink: #3d2e00; /* texto sobre ámbar */
@@ -34,11 +34,11 @@
   --popover-foreground: var(--ink);
   --primary: var(--ink-strong);
   --primary-foreground: #ffffff;
-  --secondary: #f1f0ed;
+  --secondary: #e5e5ea;
   --secondary-foreground: var(--ink);
-  --muted: #f1f0ed;
+  --muted: #e5e5ea;
   --muted-foreground: var(--muted-ink);
-  --accent: #f6f0de;
+  --accent: #f5edd6;
   --accent-foreground: var(--ink);
   --destructive: var(--danger);
   --destructive-foreground: #ffffff;
@@ -57,14 +57,15 @@
  * claro con texto oscuro, el mismo nivel de énfasis que en el tema claro.
  */
 .dark {
-  --paper: #1c1b19;
-  --surface: #242320;
-  --ink: #ededeb;
-  --line: #38362f;
-  --muted-ink: #a6a399;
-  --secondary: #2c2a26;
-  --muted: #2c2a26;
-  --accent: #3a3226;
+  --paper: #0b0b0c;
+  --surface: #1c1c1e;
+  --ink: #f2f2f7;
+  --ink-strong: #1a1a1c; /* un pelo más clara que el paper: la pizarra se lee como panel */
+  --line: #2c2c2e;
+  --muted-ink: #98989e;
+  --secondary: #2c2c2e;
+  --muted: #2c2c2e;
+  --accent: #2e2e30;
   --ok: #34c77b;
   --warn: #e08a3c;
   --danger: #e5564b;
@@ -72,17 +73,22 @@
   --primary-foreground: var(--paper);
 }
 
-/* Negro: OLED, "lights out" — la variante más oscura. */
+/*
+ * Negro: OLED de verdad ("lights out"). paper #000 puro; la superficie
+ * sólida es #121212 (la usa la pantalla de venta y todo lo que no sea
+ * chrome). El chrome (nav, modales) usa `.glass` en vez de bg-surface para
+ * el material esmerilado — ver más abajo.
+ */
 .black {
   --paper: #000000;
-  --surface: #131211;
-  --ink: #f5f3ee;
-  --ink-strong: #171614; /* un pelo más clara que el paper puro: se distingue */
-  --line: #26241f;
-  --muted-ink: #8f8c82;
-  --secondary: #1a1917;
-  --muted: #1a1917;
-  --accent: #2a2318;
+  --surface: #121212;
+  --ink: #f2f2f7;
+  --ink-strong: #141414; /* pizarra: apenas por encima del negro puro */
+  --line: #2c2c2e;
+  --muted-ink: #98989e;
+  --secondary: #1c1c1e;
+  --muted: #1c1c1e;
+  --accent: #202022;
   --ok: #34c77b;
   --warn: #e08a3c;
   --danger: #e5564b;
@@ -159,5 +165,42 @@
       animation-duration: 0.01ms !important;
       transition-duration: 0.01ms !important;
     }
+  }
+}
+
+/*
+ * Material "glass" — vidrio esmerilado tipo Liquid Glass (NO el gloss Aqua
+ * de los 2000: sin gradiente diagonal, sin brillo especular).
+ *
+ * SOLO se activa en el tema Negro y SOLO en zonas de chrome (nav rail,
+ * modales, sheets). Se opta-in poniendo la clase `glass` EN LUGAR de
+ * `bg-surface`. En Claro y Oscuro `glass` es una superficie sólida normal,
+ * sin costo de blur.
+ *
+ * NUNCA en la pantalla de venta: ahí las superficies quedan sólidas y
+ * opacas incluso en Negro. El presupuesto de esa pantalla es 150ms sin
+ * animación de entrada, y backdrop-filter cuesta en cada repintado.
+ */
+.glass {
+  background-color: var(--surface);
+}
+.black .glass {
+  /* tinte de blanco ~10% sobre el negro + desenfoque del fondo */
+  background-color: color-mix(in srgb, #ffffff 10%, transparent);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  /* filo de luz de 1px en el borde superior, sin brillo especular */
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14);
+}
+/*
+ * Guardas de accesibilidad/rendimiento: si el sistema pide menos
+ * transparencia, el glass vuelve a ser superficie sólida (sin blur).
+ */
+@media (prefers-reduced-transparency: reduce) {
+  .black .glass {
+    background-color: var(--surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
   }
 }

@@ -8,6 +8,8 @@ import { ThemeProvider } from "next-themes";
 import { ShoppingCart, Package, Boxes, Receipt, BarChart3, Settings, Maximize2, Minimize2 } from "lucide-react";
 import { AppProvider, useApp } from "./lib/app-context";
 import { THEME_STORAGE_KEY } from "./lib/theme-options";
+// Único origen del logo: logo-kiOS.svg (raíz) → copiado acá por `npm run assets`.
+import logoUrl from "./assets/logo.svg";
 import { useFullscreen } from "./lib/use-fullscreen";
 import { Toaster } from "./ui/shadcn/sonner";
 import { cn } from "./lib/utils";
@@ -30,15 +32,9 @@ const NAV_ITEMS: { id: Screen; label: string; icon: typeof ShoppingCart }[] = [
 ];
 
 function KiosMark({ size = 32 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 125 125" role="img" aria-label="kiOS">
-      <rect width="125" height="125" rx="28" fill="#FDBF2D" />
-      <circle cx="42" cy="27" r="7" fill="#0B0B0C" />
-      <path d="M42 45 L42 98" stroke="#0B0B0C" strokeWidth="11" strokeLinecap="round" fill="none" />
-      <path d="M48 82 L82 48" stroke="#0B0B0C" strokeWidth="11" strokeLinecap="round" fill="none" />
-      <path d="M58 72 L86 98" stroke="#0B0B0C" strokeWidth="11" strokeLinecap="round" fill="none" />
-    </svg>
-  );
+  // El logo es un cuadrado ámbar autocontenido: mismo aspecto en los tres
+  // temas, sin recolorear. Viene del SVG fuente, no de un dibujo inline.
+  return <img src={logoUrl} width={size} height={size} alt="kiOS" draggable={false} />;
 }
 
 function BootScreen({ message }: { message?: string }) {
@@ -72,7 +68,7 @@ function NavRail({ active, onChange }: { active: Screen; onChange: (screen: Scre
   const { isFullscreen, toggle } = useFullscreen();
 
   return (
-    <nav className="flex w-20 shrink-0 flex-col items-center gap-1 border-r border-line bg-surface py-4">
+    <nav className="glass flex w-20 shrink-0 flex-col items-center gap-1 border-r border-line py-4">
       <div className="mb-3">
         <KiosMark />
       </div>
@@ -128,6 +124,7 @@ export default function App() {
     <ThemeProvider
       attribute="class"
       defaultTheme="light"
+      enableSystem
       themes={["light", "dark", "black"]}
       storageKey={THEME_STORAGE_KEY}
     >
