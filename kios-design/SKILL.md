@@ -25,7 +25,6 @@ actualiza el documento — nunca se ignora en silencio.
   de Tauri). Si cambia el logo: se reemplaza ese archivo y se corre el
   comando — jamás se editan copias a mano. El monograma es un cuadrado
   ámbar autocontenido: mismo aspecto en los tres temas, sin recolorear.
-  (El SVG viejo `kios_logo_final_color_variants.svg` quedó obsoleto.)
 - **Ámbar kiosco `#FDBF2D`**: el amarillo de marquesina. Es EL acento y se
   gasta en una sola cosa por pantalla: la acción de dinero (Cobrar) y el
   anillo de foco. Si el ámbar aparece dos veces en una vista, sobra una.
