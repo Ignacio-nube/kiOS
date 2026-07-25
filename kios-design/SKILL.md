@@ -122,13 +122,20 @@ gradiente diagonal ni brillo especular). Vive en la clase `.glass`
 
 - En Claro y Oscuro `.glass` es una superficie sólida normal (`var(--surface)`),
   sin costo de blur.
-- En Negro (`.black .glass`): tinte de blanco ~10% sobre el negro +
-  `backdrop-filter: blur(20px) saturate(180%)` + filo de luz 1px en el
-  borde superior (`inset 0 1px 0`). Bajo `prefers-reduced-transparency`
-  vuelve a superficie sólida.
+- En Negro (`.black .glass`): material translúcido oscuro
+  (`rgb(28 28 32 / 0.55)`) + `backdrop-filter: blur(30px) saturate(200%)
+  brightness(1.15)` (deja pasar el fondo desenfocado y saturado) + sheen de
+  luz desde arriba (`background-image` gradiente) + filo 1px superior + borde
+  hairline claro. El sheen hace que lea como vidrio aun sin contenido detrás
+  (ej. el nav rail sobre negro puro no tiene qué desenfocar).
+- Los modales suman `.glass-overlay`: en Negro el backdrop desenfoca TODA la
+  app detrás del modal (`blur(10px)` sobre `bg-black/40`) — el gesto de las
+  sheets de iOS. En Claro/Oscuro el overlay queda plano.
+- Bajo `prefers-reduced-transparency` todo el glass vuelve a sólido sin blur.
 
 **Dónde va**: chrome — nav rail (`App.tsx`) y modales/sheets
-(`DialogContent`). **Dónde NO, sin excepción**: la pantalla de venta. Ahí
+(`DialogContent` + `DialogOverlay`). **Dónde NO, sin excepción**: la
+pantalla de venta. Ahí
 las superficies quedan sólidas y opacas incluso en Negro — el presupuesto
 es 150ms/repintado y `backdrop-filter` cuesta por frame. Si sumás glass a
 un componente nuevo, que sea chrome, y medí el costo en el WebView de Tauri
