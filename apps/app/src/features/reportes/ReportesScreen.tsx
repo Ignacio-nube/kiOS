@@ -5,7 +5,8 @@
  * hechos inmutables, para cualquier rango.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, Download, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { useApp } from "../../lib/app-context";
 import { usePaginatedList } from "../../lib/use-paginated-list";
 import { cn } from "../../lib/utils";
@@ -13,17 +14,24 @@ import {
   dateInputsToRange, formatDateTime, lastNDaysRange, thisMonthRange, todayRange,
   toDateInputValue, yesterdayRange, type DateRange,
 } from "../../domain/dates";
-import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS, type PaymentMethod } from "../../domain/ticket";
-import type { Category, PaymentBreakdownEntry, TopProduct } from "../../data/types";
+import { ALL_PAYMENT_METHODS, isCashInMethod, PAYMENT_METHOD_LABELS, type PaymentMethod } from "../../domain/ticket";
+import { useCashierStore } from "../cajeros/cashier-store";
+import { CierreCajaCard } from "./CierreCajaCard";
+import type {
+  CashierClosingEntry, Category, PaymentBreakdownEntry, SalesFilter, TopProduct,
+} from "../../data/types";
 import { Card, CardBody, CardHeader, CardTitle } from "../../ui/card";
 import { Badge } from "../../ui/badge";
+import { Button } from "../../ui/button";
 import { Money } from "../../ui/money";
 import { Input } from "../../ui/input";
 import { EmptyState } from "../../ui/empty-state";
 import { Pagination } from "../../ui/pagination";
+import { Skeleton, ListRowSkeleton } from "../../ui/skeleton";
 import { ListRow, ListRowDetail, ListRowMain, ListRowTitle } from "../../ui/list-row";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/shadcn/select";
 import { SaleDetailDialog } from "../ventas-dia/SaleDetailDialog";
+import { exportReportToExcel } from "./export-excel";
 
 const PAGE_SIZE = 20;
 const ALL = "__all__";
@@ -40,6 +48,7 @@ const PRESETS: { id: Preset; label: string }[] = [
 
 export function ReportesScreen() {
   const { repos } = useApp();
+  const cashiers = useCashierStore((s) => s.cashiers);
   const [preset, setPreset] = useState<Preset>("hoy");
   const [customFrom, setCustomFrom] = useState(() => toDateInputValue());
   const [customTo, setCustomTo] = useState(() => toDateInputValue());
@@ -49,6 +58,10 @@ export function ReportesScreen() {
   const [summary, setSummary] = useState({ count: 0, totalCents: 0 });
   const [breakdown, setBreakdown] = useState<PaymentBreakdownEntry[]>([]);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
+  const [closing, setClosing] = useState<CashierClosingEntry[]>([]);
+  const [cashierFilter, setCashierFilter] = useState<string>(ALL);
+  const [aggLoading, setAggLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
 
   const range = useMemo<DateRange>(() => {
@@ -63,22 +76,40 @@ export function ReportesScreen() {
 
   const method = paymentFilter === ALL ? undefined : (paymentFilter as PaymentMethod);
   const categoryId = categoryFilter === ALL ? undefined : categoryFilter;
+  const cashierId = cashierFilter === ALL ? undefined : cashierFilter;
+  const salesFilter = useMemo<SalesFilter>(
+    () => ({ paymentMethod: method, cashierId }),
+    [method, cashierId],
+  );
 
   const fetchPage = useCallback(
-    (limit: number, offset: number) => repos.sales.listByRange(range, limit, offset, method),
-    [repos, range, method],
+    (limit: number, offset: number) => repos.sales.listByRange(range, limit, offset, salesFilter),
+    [repos, range, salesFilter],
   );
-  const { items: sales, page, hasMore, reload, nextPage, prevPage, resetPage } = usePaginatedList(fetchPage, PAGE_SIZE);
+  // `summary.count` NO sirve acá: es facturación y excluye las anuladas, que
+  // el listado sí muestra. Ver `countByRange`.
+  const countAll = useCallback(
+    () => repos.sales.countByRange(range, salesFilter),
+    [repos, range, salesFilter],
+  );
+  const { items: sales, page, hasMore, loading, total, reload, nextPage, prevPage, resetPage, goToPage } =
+    usePaginatedList(fetchPage, PAGE_SIZE, countAll);
 
   useEffect(() => {
     void repos.products.listCategories().then(setCategories);
   }, [repos]);
 
   const reloadAggregates = useCallback(() => {
-    void repos.sales.totalsByRange(range, method).then(setSummary);
-    void repos.sales.paymentBreakdown(range).then(setBreakdown);
-    void repos.sales.topProducts(range, { categoryId, limit: 10 }).then(setTopProducts);
-  }, [repos, range, method, categoryId]);
+    setAggLoading(true);
+    void Promise.all([
+      repos.sales.totalsByRange(range, salesFilter).then(setSummary),
+      repos.sales.paymentBreakdown(range, salesFilter).then(setBreakdown),
+      repos.sales.topProducts(range, { categoryId, limit: 10 }).then(setTopProducts),
+      // El cierre NO se filtra por cajero: mostrar todos permite comparar
+      // turnos, que es justamente para lo que sirve.
+      repos.sales.closingByCashier(range).then(setClosing),
+    ]).finally(() => setAggLoading(false));
+  }, [repos, range, salesFilter, categoryId]);
 
   useEffect(() => {
     reloadAggregates();
@@ -102,10 +133,62 @@ export function ReportesScreen() {
   }
 
   const avgTicketCents = summary.count > 0 ? Math.round(summary.totalCents / summary.count) : 0;
+  // `paymentBreakdown` incluye el fiado, que NO es plata cobrada.
+  const fiadoCents = breakdown
+    .filter((b) => !isCashInMethod(b.method))
+    .reduce((sum, b) => sum + b.totalCents, 0);
+  const cobradoCents = breakdown
+    .filter((b) => isCashInMethod(b.method))
+    .reduce((sum, b) => sum + b.totalCents, 0);
+
+  const rangeLabel = useMemo(() => {
+    if (preset === "personalizado") return `${customFrom} a ${customTo}`;
+    return PRESETS.find((p) => p.id === preset)?.label ?? preset;
+  }, [preset, customFrom, customTo]);
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      // Para el Excel traemos un ranking más largo que el que se ve en pantalla.
+      const [data, topForExport] = await Promise.all([
+        repos.sales.listForExport(range, salesFilter),
+        repos.sales.topProducts(range, { categoryId, limit: 100 }),
+      ]);
+      if (data.sales.length === 0) {
+        toast.warning("No hay ventas en el período para exportar.");
+        return;
+      }
+      await exportReportToExcel({
+        rangeLabel,
+        paymentLabel: method ? PAYMENT_METHOD_LABELS[method] : "Todos los medios",
+        categoryLabel:
+          categoryId ? (categories.find((c) => c.id === categoryId)?.name ?? "—") : "Todas las categorías",
+        cashierLabel:
+          cashierId ? (cashiers.find((c) => c.id === cashierId)?.name ?? "—") : "Todos los cajeros",
+        summary,
+        breakdown,
+        topProducts: topForExport,
+        closing,
+        data,
+      });
+      toast.success(`Excel generado — ${data.sales.length} venta${data.sales.length === 1 ? "" : "s"}.`);
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : String(cause);
+      toast.error("No se pudo generar el Excel", { description: message });
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <div className="p-6">
-      <h1 className="mb-4 text-xl font-bold tracking-tight">Reportes</h1>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h1 className="text-xl font-bold tracking-tight">Reportes</h1>
+        <Button variant="outline" onClick={() => void handleExport()} disabled={exporting}>
+          {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+          {exporting ? "Generando…" : "Exportar Excel"}
+        </Button>
+      </div>
 
       <div className="mb-5 flex flex-wrap items-end gap-3">
         <div className="flex flex-wrap gap-1.5">
@@ -138,7 +221,7 @@ export function ReportesScreen() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL}>Todos los medios</SelectItem>
-              {PAYMENT_METHODS.map((m) => (
+              {ALL_PAYMENT_METHODS.map((m) => (
                 <SelectItem key={m} value={m}>{PAYMENT_METHOD_LABELS[m]}</SelectItem>
               ))}
             </SelectContent>
@@ -154,6 +237,20 @@ export function ReportesScreen() {
               ))}
             </SelectContent>
           </Select>
+          <Select
+            value={cashierFilter}
+            onValueChange={(v) => { setCashierFilter(v); resetPage(); }}
+          >
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>Todos los cajeros</SelectItem>
+              {cashiers.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -161,19 +258,19 @@ export function ReportesScreen() {
         <Card>
           <CardBody>
             <p className="text-xs text-muted-ink">Ventas</p>
-            <p className="tnum text-2xl font-bold">{summary.count}</p>
+            {aggLoading ? <Skeleton className="mt-1 h-8 w-16" /> : <p className="tnum text-2xl font-bold">{summary.count}</p>}
           </CardBody>
         </Card>
         <Card>
           <CardBody>
             <p className="text-xs text-muted-ink">Facturado</p>
-            <Money cents={summary.totalCents} size="lg" />
+            {aggLoading ? <Skeleton className="mt-1 h-7 w-28" /> : <Money cents={summary.totalCents} size="lg" />}
           </CardBody>
         </Card>
         <Card>
           <CardBody>
             <p className="text-xs text-muted-ink">Ticket promedio</p>
-            <Money cents={avgTicketCents} size="lg" />
+            {aggLoading ? <Skeleton className="mt-1 h-7 w-24" /> : <Money cents={avgTicketCents} size="lg" />}
           </CardBody>
         </Card>
       </div>
@@ -184,17 +281,38 @@ export function ReportesScreen() {
             <CardTitle>Medios de pago</CardTitle>
           </CardHeader>
           <CardBody>
-            {breakdown.length === 0 ? (
+            {aggLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <Skeleton className="h-5 w-20 rounded-full" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                ))}
+              </div>
+            ) : breakdown.length === 0 ? (
               <p className="text-sm text-muted-ink">Sin ventas en el período.</p>
             ) : (
-              <ul className="space-y-2">
-                {breakdown.map((b) => (
-                  <li key={b.method} className="flex items-center justify-between">
-                    <Badge tone="neutral">{PAYMENT_METHOD_LABELS[b.method]}</Badge>
-                    <Money cents={b.totalCents} />
-                  </li>
-                ))}
-              </ul>
+              <>
+                <ul className="space-y-2">
+                  {breakdown.map((b) => (
+                    <li key={b.method} className="flex items-center justify-between">
+                      <Badge tone={isCashInMethod(b.method) ? "neutral" : "warn"}>
+                        {PAYMENT_METHOD_LABELS[b.method]}
+                      </Badge>
+                      <Money cents={b.totalCents} />
+                    </li>
+                  ))}
+                </ul>
+                {/* Fiar no es cobrar: sin este pie, la suma de arriba se lee
+                    como plata que entró y no lo es. */}
+                {fiadoCents > 0 && (
+                  <p className="mt-3 border-t border-line pt-2 text-xs text-muted-ink">
+                    Cobrado <Money cents={cobradoCents} size="sm" className="font-semibold text-ink" />
+                    {" · "}Fiado <Money cents={fiadoCents} size="sm" className="font-semibold text-warn" />
+                  </p>
+                )}
+              </>
             )}
           </CardBody>
         </Card>
@@ -204,7 +322,16 @@ export function ReportesScreen() {
             <CardTitle>Más vendidos</CardTitle>
           </CardHeader>
           <CardBody>
-            {topProducts.length === 0 ? (
+            {aggLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <Skeleton className="h-4 w-2/5" />
+                    <Skeleton className="h-4 w-14" />
+                  </div>
+                ))}
+              </div>
+            ) : topProducts.length === 0 ? (
               <p className="text-sm text-muted-ink">Sin ventas en el período.</p>
             ) : (
               <ul className="space-y-2">
@@ -224,9 +351,13 @@ export function ReportesScreen() {
         </Card>
       </div>
 
+      <CierreCajaCard closing={closing} loading={aggLoading} />
+
       <h2 className="mb-2 text-sm font-semibold text-muted-ink">Ventas del período</h2>
       <div className="overflow-hidden rounded-xl border border-line bg-surface">
-        {sales.length === 0 ? (
+        {loading && sales.length === 0 ? (
+          <ListRowSkeleton />
+        ) : sales.length === 0 ? (
           <EmptyState icon={BarChart3} title="Sin ventas en el período" description="Probá otro rango de fechas o sacá los filtros." />
         ) : (
           <>
@@ -240,7 +371,10 @@ export function ReportesScreen() {
                 <Money cents={sale.totalCents} className={sale.voidedAt ? "text-muted-ink line-through" : ""} />
               </ListRow>
             ))}
-            <Pagination page={page} hasMore={hasMore} onPrev={prevPage} onNext={nextPage} />
+            <Pagination
+              page={page} hasMore={hasMore} onPrev={prevPage} onNext={nextPage}
+              total={total} pageSize={PAGE_SIZE} onGoToPage={goToPage}
+            />
           </>
         )}
       </div>

@@ -7,6 +7,7 @@
 import type { SqlDriver, SqlExecutor } from "../driver";
 import type { RepoContext } from "../context";
 import type { Category, NewProduct, Product, ProductPatch } from "../types";
+import { foldForSearch } from "../../domain/search";
 
 interface ProductRow {
   id: string;
@@ -48,6 +49,12 @@ export interface ProductsRepo {
   /** Unicidad BLANDA de barcode: el dominio advierte, no bloquea. */
   findByBarcodeExcluding(barcode: string, excludeId?: string): Promise<Product[]>;
   countActive(): Promise<number>;
+  /**
+   * Cuántas filas devolvería `list`/`search` con el mismo término. Espeja su
+   * WHERE al pie de la letra: si divergen, la paginación numerada muestra
+   * páginas que no existen.
+   */
+  count(term?: string): Promise<number>;
   create(input: NewProduct): Promise<Product>;
   update(id: string, patch: ProductPatch): Promise<void>;
   softDelete(id: string): Promise<void>;
@@ -69,9 +76,12 @@ export function createProductsRepo(driver: SqlDriver, ctx: RepoContext): Product
     async search(term, limit = 30, offset = 0) {
       const rows = await driver.select<ProductRow>(
         `SELECT ${PRODUCT_COLUMNS} FROM products
-         WHERE deleted_at IS NULL AND (name LIKE ? COLLATE NOCASE OR barcode = ?)
+         WHERE deleted_at IS NULL AND (name_folded LIKE ? OR barcode = ?)
          ORDER BY name COLLATE NOCASE LIMIT ? OFFSET ?`,
-        [`%${term}%`, term, limit, offset],
+        // El término se pliega igual que la columna: comparar un lado
+        // normalizado contra otro sin normalizar no arregla nada. El
+        // barcode NO se pliega — es un número, se compara tal cual.
+        [`%${foldForSearch(term)}%`, term, limit, offset],
       );
       return rows.map(mapProduct);
     },
@@ -110,16 +120,32 @@ export function createProductsRepo(driver: SqlDriver, ctx: RepoContext): Product
       return rows[0]?.n ?? 0;
     },
 
+    async count(term) {
+      const trimmed = term?.trim() ?? "";
+      // Sin término = mismo WHERE que `list`; con término = el de `search`.
+      const rows = trimmed === ""
+        ? await driver.select<{ n: number }>(
+            "SELECT COUNT(*) AS n FROM products WHERE deleted_at IS NULL",
+          )
+        : await driver.select<{ n: number }>(
+            `SELECT COUNT(*) AS n FROM products
+             WHERE deleted_at IS NULL AND (name_folded LIKE ? OR barcode = ?)`,
+            [`%${foldForSearch(trimmed)}%`, trimmed],
+          );
+      return rows[0]?.n ?? 0;
+    },
+
     async create(input) {
       const id = ctx.newId();
       const now = ctx.now();
       await driver.transaction(async (tx) => {
         await tx.execute(
-          `INSERT INTO products (id, tenant_id, name, barcode, price_cents, cost_cents,
-             category_id, low_stock_threshold, created_at, updated_at, device_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO products (id, tenant_id, name, name_folded, barcode, price_cents,
+             cost_cents, category_id, low_stock_threshold, created_at, updated_at, device_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
-            id, ctx.tenantId, input.name, input.barcode ?? null, input.priceCents,
+            id, ctx.tenantId, input.name, foldForSearch(input.name),
+            input.barcode ?? null, input.priceCents,
             input.costCents ?? null, input.categoryId ?? null,
             input.lowStockThreshold ?? null, now, now, ctx.deviceId,
           ],
@@ -142,7 +168,13 @@ export function createProductsRepo(driver: SqlDriver, ctx: RepoContext): Product
         sets.push(`${column} = ?`);
         params.push(value);
       };
-      if (patch.name !== undefined) push("name", patch.name);
+      if (patch.name !== undefined) {
+        push("name", patch.name);
+        // Las dos columnas se mueven SIEMPRE juntas: un rename que actualice
+        // `name` y deje `name_folded` viejo deja el producto encontrable por
+        // un nombre que ya no tiene, y no por el que sí.
+        push("name_folded", foldForSearch(patch.name));
+      }
       if (patch.barcode !== undefined) push("barcode", patch.barcode);
       if (patch.priceCents !== undefined) push("price_cents", patch.priceCents);
       if (patch.costCents !== undefined) push("cost_cents", patch.costCents);

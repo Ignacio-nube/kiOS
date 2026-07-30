@@ -10,6 +10,7 @@ import { Input } from "../../ui/input";
 import { Button } from "../../ui/button";
 import { EmptyState } from "../../ui/empty-state";
 import { Pagination } from "../../ui/pagination";
+import { ListRowSkeleton } from "../../ui/skeleton";
 import { ListRow, ListRowDetail, ListRowMain, ListRowTitle } from "../../ui/list-row";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../ui/shadcn/dialog";
 import { StockMovementDialog } from "./StockMovementDialog";
@@ -37,7 +38,9 @@ export function StockScreen() {
     },
     [repos, filter],
   );
-  const { items: products, page, hasMore, reload, nextPage, prevPage, resetPage } = usePaginatedList(fetchPage, PAGE_SIZE);
+  const countAll = useCallback(() => repos.products.count(filter), [repos, filter]);
+  const { items: products, page, hasMore, loading, total, reload, nextPage, prevPage, resetPage, goToPage } =
+    usePaginatedList(fetchPage, PAGE_SIZE, countAll);
 
   useEffect(() => {
     if (products.length === 0) {
@@ -75,7 +78,9 @@ export function StockScreen() {
       />
 
       <div className="overflow-hidden rounded-xl border border-line bg-surface">
-        {products.length === 0 ? (
+        {loading && products.length === 0 ? (
+          <ListRowSkeleton />
+        ) : products.length === 0 ? (
           <EmptyState icon={Boxes} title="Sin productos" description="Cargá productos desde la pantalla Productos." />
         ) : (
           <>
@@ -107,7 +112,10 @@ export function StockScreen() {
                 </ListRow>
               );
             })}
-            <Pagination page={page} hasMore={hasMore} onPrev={prevPage} onNext={nextPage} />
+            <Pagination
+              page={page} hasMore={hasMore} onPrev={prevPage} onNext={nextPage}
+              total={total} pageSize={PAGE_SIZE} onGoToPage={goToPage}
+            />
           </>
         )}
       </div>

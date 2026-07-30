@@ -2,6 +2,13 @@
  * `SqlDriver` de escritorio: SQLite nativo vía tauri-plugin-sql (sqlx).
  * La `AsyncQueue` es obligatoria acá: el pool de sqlx repartiría queries
  * concurrentes entre conexiones distintas y partiría las transacciones.
+ *
+ * ⚠ Las FOREIGN KEYS no están garantizadas en este driver. sqlx las activa
+ * por default, pero al ser un POOL un `PRAGMA foreign_keys = ON` solo
+ * afectaría a la conexión que lo atendió — ponerlo acá sería un placebo.
+ * Por eso los repositorios validan la existencia de las filas referenciadas
+ * con SELECTs explícitos dentro de la transacción, en vez de confiar en que
+ * la FK explote. (El driver wasm y el de tests sí las activan.)
  */
 import Database from "@tauri-apps/plugin-sql";
 import { BaseDirectory, copyFile, mkdir } from "@tauri-apps/plugin-fs";
@@ -47,6 +54,13 @@ export async function createTauriDriver(): Promise<SqlDriver> {
     },
 
     async backupDatabase(label) {
+      // sqlx abre SQLite en modo WAL: lo recién commiteado puede vivir solo
+      // en el sidecar `kios.db-wal`, y acá copiamos ÚNICAMENTE `kios.db`.
+      // Sin este checkpoint el backup previo a una migración saldría sin los
+      // últimos datos — justo los que hacen falta si la migración sale mal.
+      // TRUNCATE vuelca el WAL al archivo principal y lo vacía, dejando
+      // `kios.db` autocontenido antes de la copia.
+      await queue.run(() => executor.execute("PRAGMA wal_checkpoint(TRUNCATE)"));
       await mkdir("backups", { baseDir: BaseDirectory.AppConfig, recursive: true });
       await copyFile(DB_FILE, `backups/${label}`, {
         fromPathBaseDir: BaseDirectory.AppConfig,

@@ -215,6 +215,36 @@
 }
 
 /*
+ * Impresión de tickets. El ticket vive en un portal a <body> con id
+ * #kios-print-root (ver features/impresion/TicketPrintArea.tsx). Al imprimir
+ * se ocultan TODOS los demás hijos directos de body — incluidos los portales
+ * de Radix (modales, toasts) — así sale el ticket solo, esté abierta la
+ * pantalla que esté. En pantalla el ticket nunca se ve.
+ */
+#kios-print-root {
+  display: none;
+}
+
+@media print {
+  body > *:not(#kios-print-root) {
+    display: none !important;
+  }
+  #kios-print-root {
+    display: block !important;
+  }
+  /* El papel siempre blanco: en tema Negro, imprimir el fondo sería un
+     rectángulo de tinta (y muchas impresoras lo omiten igual). */
+  html,
+  body {
+    background: #fff !important;
+  }
+  @page {
+    size: 80mm auto; /* rollo térmico; el alto lo define el contenido */
+    margin: 4mm;
+  }
+}
+
+/*
  * Guardas de accesibilidad/rendimiento: si el sistema pide menos
  * transparencia, el glass vuelve a ser superficie sólida (sin blur).
  */

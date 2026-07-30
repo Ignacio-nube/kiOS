@@ -5,6 +5,7 @@ import { useApp } from "../../lib/app-context";
 import { usePaginatedList } from "../../lib/use-paginated-list";
 import { canAddProduct } from "../../domain/entitlements";
 import { stockStatus } from "../../domain/stock";
+import { confirm } from "../../ui/confirm-dialog";
 import type { Category, Product } from "../../data/types";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
@@ -12,6 +13,7 @@ import { Badge } from "../../ui/badge";
 import { Money } from "../../ui/money";
 import { EmptyState } from "../../ui/empty-state";
 import { Pagination } from "../../ui/pagination";
+import { ListRowSkeleton } from "../../ui/skeleton";
 import { ListRow, ListRowDetail, ListRowMain, ListRowTitle } from "../../ui/list-row";
 import { ProductFormDialog } from "./ProductFormDialog";
 
@@ -39,7 +41,9 @@ export function ProductosScreen({ onGoToActivation }: { onGoToActivation: () => 
     },
     [repos, filter],
   );
-  const { items: products, page, hasMore, reload, nextPage, prevPage, resetPage } = usePaginatedList(fetchPage, PAGE_SIZE);
+  const countAll = useCallback(() => repos.products.count(filter), [repos, filter]);
+  const { items: products, page, hasMore, loading, total, reload, nextPage, prevPage, resetPage, goToPage } =
+    usePaginatedList(fetchPage, PAGE_SIZE, countAll);
 
   const refreshCount = useCallback(() => {
     void repos.products.countActive().then(setActiveCount);
@@ -82,7 +86,13 @@ export function ProductosScreen({ onGoToActivation }: { onGoToActivation: () => 
   }
 
   async function handleDelete(product: Product) {
-    if (!window.confirm(`¿Dar de baja "${product.name}"? Podés volver a cargarlo después.`)) return;
+    const ok = await confirm({
+      title: `¿Dar de baja "${product.name}"?`,
+      description: "Podés volver a cargarlo después.",
+      confirmLabel: "Dar de baja",
+      danger: true,
+    });
+    if (!ok) return;
     await repos.products.softDelete(product.id);
     toast.success("Producto dado de baja");
     void reload();
@@ -111,7 +121,9 @@ export function ProductosScreen({ onGoToActivation }: { onGoToActivation: () => 
       />
 
       <div className="overflow-hidden rounded-xl border border-line bg-surface">
-        {products.length === 0 ? (
+        {loading && products.length === 0 ? (
+          <ListRowSkeleton />
+        ) : products.length === 0 ? (
           <EmptyState
             icon={Package}
             title={activeCount === 0 ? "Todavía no cargaste productos" : "Sin resultados"}
@@ -154,7 +166,10 @@ export function ProductosScreen({ onGoToActivation }: { onGoToActivation: () => 
                 </ListRow>
               );
             })}
-            <Pagination page={page} hasMore={hasMore} onPrev={prevPage} onNext={nextPage} />
+            <Pagination
+              page={page} hasMore={hasMore} onPrev={prevPage} onNext={nextPage}
+              total={total} pageSize={PAGE_SIZE} onGoToPage={goToPage}
+            />
           </>
         )}
       </div>

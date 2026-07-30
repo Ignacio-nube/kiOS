@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   addToTicket, changeDue, removeFromTicket, setTicketQty, ticketItemCount, ticketTotal,
+  ALL_PAYMENT_METHODS, isCashInMethod, PAYMENT_METHODS, PAYMENT_METHOD_LABELS,
   type TicketLine,
 } from "./ticket";
 
@@ -40,5 +41,31 @@ describe("ticket", () => {
     expect(changeDue(3900, 5000)).toBe(1100);
     expect(changeDue(3900, 3900)).toBe(0);
     expect(changeDue(3900, 3000)).toBeNull();
+  });
+});
+
+describe("medios de pago", () => {
+  // Esta es la guarda del bug más caro de la feature: si "credit" entra en
+  // PAYMENT_METHODS, CobrarDialog lo ofrece SIN selector de cliente y la
+  // venta explota al confirmar.
+  it("PAYMENT_METHODS (los que entran plata) NO incluye fiado", () => {
+    expect(PAYMENT_METHODS).not.toContain("credit");
+    expect(PAYMENT_METHODS).toEqual(["cash", "card", "qr", "transfer"]);
+  });
+
+  it("ALL_PAYMENT_METHODS los tiene todos, con fiado al final", () => {
+    expect(ALL_PAYMENT_METHODS).toEqual(["cash", "card", "qr", "transfer", "credit"]);
+  });
+
+  it("todos los medios tienen etiqueta", () => {
+    for (const m of ALL_PAYMENT_METHODS) {
+      expect(PAYMENT_METHOD_LABELS[m]).toBeTruthy();
+    }
+  });
+
+  it("isCashInMethod: fiar no es cobrar", () => {
+    expect(isCashInMethod("cash")).toBe(true);
+    expect(isCashInMethod("transfer")).toBe(true);
+    expect(isCashInMethod("credit")).toBe(false);
   });
 });

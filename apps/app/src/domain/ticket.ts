@@ -3,16 +3,33 @@
  * No sabe de React ni de SQL: recibe y devuelve datos.
  */
 
-export type PaymentMethod = "cash" | "card" | "qr" | "transfer";
+export type PaymentMethod = "cash" | "card" | "qr" | "transfer" | "credit";
 
+/**
+ * Medios que ENTRAN plata al cajón. NO incluye `credit` a propósito: fiar no
+ * es cobrar, y el cierre de caja se rompe si se mezclan.
+ *
+ * ⚠ Si agregás "credit" acá, CobrarDialog lo ofrece como un medio más — sin
+ * selector de cliente — y registerSale explota al confirmar. Para listas de
+ * filtros y etiquetas usá ALL_PAYMENT_METHODS.
+ */
 export const PAYMENT_METHODS: readonly PaymentMethod[] = ["cash", "card", "qr", "transfer"];
+
+/** Los cinco, para filtros, desgloses y etiquetas. */
+export const ALL_PAYMENT_METHODS: readonly PaymentMethod[] = [...PAYMENT_METHODS, "credit"];
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   cash: "Efectivo",
   card: "Tarjeta",
   qr: "QR / MercadoPago",
   transfer: "Transferencia",
+  credit: "Fiado",
 };
+
+/** ¿Este medio significa plata recibida? (fiado = no). */
+export function isCashInMethod(method: PaymentMethod): boolean {
+  return method !== "credit";
+}
 
 export interface TicketLine {
   productId: string;

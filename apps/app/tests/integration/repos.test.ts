@@ -22,6 +22,59 @@ async function seedProduct(name: string, priceCents: number, extra?: { barcode?:
   });
 }
 
+/**
+ * El buscador tiene que encontrar lo que el kiosquero escribe apurado, no
+ * lo que dice el diccionario. Estos tests van por el repo (no por SQL
+ * crudo) porque es exactamente el camino que usa la pantalla de venta.
+ */
+describe("búsqueda sin acentos ni mayúsculas", () => {
+  it("'turron' encuentra 'Turrón de maní'", async () => {
+    await seedProduct("Turrón de maní", 900);
+    await seedProduct("Alfajor triple", 1600);
+
+    for (const termino of ["turron", "TURRON", "Turrón", "mani", "maní", "turron de mani"]) {
+      const encontrados = await repos.products.search(termino);
+      expect(encontrados.map((p) => p.name), `buscando "${termino}"`).toEqual(["Turrón de maní"]);
+    }
+  });
+
+  it("el contador acompaña al buscador, o la paginación miente", async () => {
+    await seedProduct("Turrón de maní", 900);
+    await seedProduct("Alfajor triple", 1600);
+
+    expect(await repos.products.count("turron")).toBe(1);
+    expect(await repos.products.count("a")).toBe(2);
+  });
+
+  it("renombrar re-pliega: el nombre viejo deja de encontrarlo", async () => {
+    // El bug clásico de las columnas materializadas: se actualiza `name` y
+    // se olvida `name_folded`, y el producto queda buscable por un nombre
+    // que ya no tiene.
+    const p = await seedProduct("Turrón de maní", 900);
+    await repos.products.update(p.id, { name: "Chocolatín" });
+
+    expect(await repos.products.search("turron")).toHaveLength(0);
+    expect((await repos.products.search("chocolatin"))[0]?.name).toBe("Chocolatín");
+  });
+
+  it("el código de barras se sigue comparando literal", async () => {
+    // Plegar el barcode no tendría sentido (son dígitos) y además el match
+    // es exacto, no por substring.
+    await seedProduct("Alfajor", 1600, { barcode: "7797010147" });
+    expect((await repos.products.search("7797010147"))[0]?.barcode).toBe("7797010147");
+    expect(await repos.products.search("779701")).toHaveLength(0);
+  });
+
+  it("también funciona en clientes: 'rocio' encuentra a 'Rocío'", async () => {
+    await repos.customers.create({ name: "Rocío" });
+    await repos.customers.create({ name: "Ramón" });
+
+    expect((await repos.customers.search("rocio"))[0]?.name).toBe("Rocío");
+    expect((await repos.customers.search("RAMON"))[0]?.name).toBe("Ramón");
+    expect(await repos.customers.count("rocio")).toBe(1);
+  });
+});
+
 describe("productos", () => {
   it("crea con stock inicial vía ledger y lo agrega en current_stock", async () => {
     const p = await seedProduct("Alfajor Guaymallén", 800, { initialStock: 24 });
@@ -213,5 +266,105 @@ describe("meta", () => {
     expect(await repos.meta.get("business_name")).toBe("Kiosco Doña Rosa");
     await repos.meta.remove("business_name");
     expect(await repos.meta.get("business_name")).toBeNull();
+  });
+});
+
+/**
+ * Los contadores alimentan la paginación numerada: si cuentan distinto de lo
+ * que lista su método hermano, la UI ofrece páginas vacías (o esconde la
+ * última). Cada test compara contra el listado real, no contra un número
+ * escrito a mano.
+ */
+describe("contadores de paginación", () => {
+  it("products.count coincide con list y con search", async () => {
+    await seedProduct("Alfajor Jorgito", 800, { barcode: "779001" });
+    await seedProduct("Alfajor Guaymallén", 900);
+    await seedProduct("Coca 500", 1500);
+
+    expect(await repos.products.count()).toBe((await repos.products.list(999)).length);
+    expect(await repos.products.count("alfajor")).toBe((await repos.products.search("alfajor", 999)).length);
+    expect(await repos.products.count("alfajor")).toBe(2);
+    // El término vacío tiene que caer al camino de `list`, no al de `search`.
+    expect(await repos.products.count("   ")).toBe(3);
+    expect(await repos.products.count("no existe")).toBe(0);
+
+    // Y una baja se refleja en ambos.
+    const [first] = await repos.products.search("Jorgito", 1);
+    await repos.products.softDelete(first!.id);
+    expect(await repos.products.count()).toBe(2);
+  });
+
+  it("customers.count y countDebtors coinciden con sus listados", async () => {
+    const deudor = await repos.customers.create({ name: "Don Julio", phone: "351123" });
+    await repos.customers.create({ name: "Marta" });
+    await repos.customers.create({ name: "Tito" });
+
+    expect(await repos.customers.count()).toBe((await repos.customers.list(999)).length);
+    expect(await repos.customers.count("mar")).toBe((await repos.customers.search("mar", 999)).length);
+    // La búsqueda también pega contra el teléfono.
+    expect(await repos.customers.count("351")).toBe(1);
+
+    // Sin deuda todavía: nadie es deudor.
+    expect(await repos.customers.countDebtors()).toBe(0);
+
+    const producto = await seedProduct("Fernet", 5000, { initialStock: 10 });
+    await repos.sales.registerSale({
+      lines: [{ productId: producto.id, qty: 1 }],
+      payments: [{ method: "credit", amountCents: 5000 }],
+      customerId: deudor.id,
+    });
+    expect(await repos.customers.countDebtors()).toBe((await repos.customers.listDebtors(999)).length);
+    expect(await repos.customers.countDebtors()).toBe(1);
+  });
+
+  it("sales.countByRange INCLUYE las anuladas, igual que listByRange", async () => {
+    const producto = await seedProduct("Coca 500", 1500, { initialStock: 50 });
+    const range = { from: "2000-01-01", to: "2100-01-01" };
+
+    const a = await repos.sales.registerSale({
+      lines: [{ productId: producto.id, qty: 1 }],
+      payments: [{ method: "cash", amountCents: 1500 }],
+    });
+    await repos.sales.registerSale({
+      lines: [{ productId: producto.id, qty: 2 }],
+      payments: [{ method: "card", amountCents: 3000 }],
+    });
+
+    expect(await repos.sales.countByRange(range)).toBe((await repos.sales.listByRange(range, 999)).length);
+    expect(await repos.sales.countByRange(range)).toBe(2);
+
+    await repos.sales.voidSale(a.id);
+
+    // Ésta es la razón de existir del método: `totalsByRange` baja a 1
+    // (facturación) pero el listado sigue mostrando 2 filas, así que el
+    // contador de la paginación tiene que seguir en 2.
+    expect((await repos.sales.totalsByRange(range)).count).toBe(1);
+    expect(await repos.sales.listByRange(range, 999)).toHaveLength(2);
+    expect(await repos.sales.countByRange(range)).toBe(2);
+  });
+
+  it("sales.countByRange respeta los filtros de la pantalla de Reportes", async () => {
+    const producto = await seedProduct("Coca 500", 1500, { initialStock: 50 });
+    const range = { from: "2000-01-01", to: "2100-01-01" };
+    const cajero = await repos.cashiers.create({ name: "Rocío" });
+
+    await repos.sales.registerSale({
+      lines: [{ productId: producto.id, qty: 1 }],
+      payments: [{ method: "cash", amountCents: 1500 }],
+      cashierId: cajero.id,
+    });
+    await repos.sales.registerSale({
+      lines: [{ productId: producto.id, qty: 1 }],
+      payments: [{ method: "card", amountCents: 1500 }],
+    });
+
+    for (const filter of [{ paymentMethod: "cash" as const }, { cashierId: cajero.id }]) {
+      expect(await repos.sales.countByRange(range, filter))
+        .toBe((await repos.sales.listByRange(range, 999, 0, filter)).length);
+    }
+    expect(await repos.sales.countByRange(range, { paymentMethod: "cash" })).toBe(1);
+
+    // Y un rango que no abarca nada cuenta cero.
+    expect(await repos.sales.countByRange({ from: "1990-01-01", to: "1990-01-02" })).toBe(0);
   });
 });
