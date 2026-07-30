@@ -4,11 +4,17 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "jsx": "react-jsx",
     "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "noEmit": true,
     "isolatedModules": true,
     "skipLibCheck": true,
-    "types": ["vite/client"]
+    "allowImportingTsExtensions": true,
+    // "node" hace falta por `process.env` en las funciones de `api/` y por
+    // `Buffer` en sus tests. La landing en sí no toca ninguno de los dos.
+    "types": ["vite/client", "node"]
   },
-  "include": ["src"]
+  "include": ["src", "api"]
 }

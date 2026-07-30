@@ -1,30 +1,148 @@
 @import "tailwindcss";
 
-/* Mismos tokens que la app (kios-design/SKILL.md). */
+/**
+ * Tokens de la landing.
+ *
+ * Dos diferencias DELIBERADAS con `apps/app/src/index.css` (kios-design):
+ *
+ * 1. La base es un negro CÁLIDO (#0B0A08), no el neutro de la app. La app
+ *    es una herramienta de mostrador con luz de local; la landing se mira
+ *    de noche en un celular, y el cálido es lo que hace leer al ámbar como
+ *    marquesina encendida en vez de como aviso de error.
+ * 2. El ámbar se usa MÁS de una vez por vista. En la app la regla es "una
+ *    sola cosa por pantalla" porque compite con la tarea de cobrar; acá no
+ *    hay tarea que estorbar y el acento ES la identidad.
+ *
+ * Lo que NO cambia: el ámbar es exactamente #FDBF2D (el del design system,
+ * no el #CAA02C del mockup) y sobre ámbar el texto es SIEMPRE oscuro.
+ */
 @theme {
-  --color-paper: #faf9f7;
-  --color-ink: #0b0b0c;
-  --color-line: #e4e3e0;
-  --color-muted: #6f6e69;
+  /* Base cálida — del más oscuro al más claro. */
+  --color-void: #0b0a08;
+  --color-pit: #110f0c;
+  --color-panel: #16140f;
+  --color-raised: #1d1a14;
+  --color-line: #2a2620;
+  --color-line-soft: #221f18;
+
+  /* Tinta sobre oscuro. */
+  --color-chalk: #f8f6f1;
+  --color-ink: #f2efe8;
+  --color-dim: #b8b3a6;
+  --color-dimmer: #8d8878;
+  --color-faint: #6b6659;
+
+  /* Ámbar kiosco — mismo valor que la app. */
   --color-brand: #fdbf2d;
   --color-brand-hover: #f0ae10;
-  --color-brand-ink: #3d2e00;
-  --color-warm: #b45309;
+  --color-brand-deep: #b8860d;
+  --color-brand-ink: #2b2004;
+
+  --color-ok: #34c77b;
+
   --font-sans: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Space Grotesk Variable", var(--font-sans);
 }
 
-body {
-  background: var(--color-paper);
-  color: #141413;
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    /* El nav es sticky: sin esto los anclas dejan el título tapado. */
+    scroll-padding-top: 6rem;
+  }
+
+  body {
+    background: var(--color-void);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: var(--color-brand);
+    color: var(--color-brand-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
 }
 
-.tnum {
+@utility tnum {
   font-variant-numeric: tabular-nums;
 }
 
-:focus-visible {
-  outline: 2px solid var(--color-brand);
-  outline-offset: 2px;
+/** Títulos con degradé: el blanco puro sobre negro "quema", esto lo baja. */
+@utility text-gradient {
+  background: linear-gradient(180deg, var(--color-chalk) 0%, #b9b3a4 130%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/**
+ * Grano fino sobre el fondo. Un degradé grande en pantalla oscura muestra
+ * banding (escalones); el ruido lo disimula y de paso da la textura de
+ * papel de kiosco. SVG inline: cero requests.
+ */
+@utility grain-layer {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+}
+
+/* Marquesina de productos: dos copias de la lista corriendo en loop. */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@utility animate-marquee {
+  animation: marquee 46s linear infinite;
+}
+
+/* Brillo que recorre el CTA final. */
+@keyframes sheen {
+  0% {
+    transform: translateX(-140%) skewX(-18deg);
+  }
+  55%,
+  100% {
+    transform: translateX(360%) skewX(-18deg);
+  }
+}
+@utility animate-sheen {
+  animation: sheen 5s ease-in-out infinite;
+}
+
+/**
+ * Nadie pidió que la pantalla se mueva. Motion respeta la preferencia por
+ * su cuenta (`useReducedMotion`), pero las animaciones CSS de arriba no,
+ * así que se apagan acá.
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .animate-marquee,
+  .animate-sheen {
+    animation: none;
+  }
 }
