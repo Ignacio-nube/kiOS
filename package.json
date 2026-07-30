@@ -15,9 +15,13 @@
     "tauri": "npm run tauri -w apps/app",
     "test": "npm test -w apps/app",
     "bench": "npm run bench -w apps/app",
-    "lint": "npm run lint -w apps/app"
+    "lint": "npm run lint -w apps/app",
+    "license:keygen": "node scripts/license/keygen.mjs",
+    "license:sign": "tsx scripts/license/sign.mts",
+    "license:verify": "tsx scripts/license/verify.mts"
   },
   "devDependencies": {
-    "sharp": "^0.35.3"
+    "sharp": "^0.35.3",
+    "tsx": "^4.23.0"
   }
 }

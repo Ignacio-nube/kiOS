@@ -149,7 +149,7 @@ Propios (en `apps/app/src/ui/`, NUNCA reemplazar por shadcn):
 - `Card` (+ `CardHeader/CardTitle/CardBody`), `Input` (foco ámbar,
   `size="lg"` para el buscador de venta), `Badge` (tones `ok|warn|danger|
   neutral|brand` — semáforo de stock), `ListRow` (+ Main/Title/Detail,
-  min-h 48px), `Money`, `Kbd`, `EmptyState`.
+  min-h 48px), `Money`, `Kbd`, `EmptyState`, `Skeleton` (+ `ListRowSkeleton`).
 
 shadcn PERMITIDOS (en `apps/app/src/ui/shadcn/`, agregados por CLI):
 Dialog, Popover, Select, DropdownMenu, Tooltip, Sonner (toast), Command.
@@ -168,6 +168,14 @@ NO SF Symbols. Animación: Motion (`motion/react`), con moderación: el
   enfocado) + resultados; derecha la pizarra del ticket.
 - Estados vacíos: siempre `EmptyState` con acción concreta ("Cargá tu
   primer producto"), nunca un hueco.
+- Estados de carga: `ListRowSkeleton` en listas y `Skeleton` en KPIs, con
+  la condición `loading && items.length === 0` (flag que da
+  `usePaginatedList`). Nunca mostrar EmptyState mientras carga — decir "no
+  hay nada" y desdecirse un instante después es peor que esperar. Al
+  paginar NO se tapa la página anterior: se reemplaza cuando llega.
+- Acciones destructivas: confirmación ESCRITA (tipear BORRAR/RESTABLECER),
+  no un "¿estás seguro?" que se aprieta sin leer. El diálogo dice qué se
+  borra, qué se conserva, y que no se puede deshacer.
 - Errores: qué pasó + cómo seguir, voz de la interfaz, sin disculpas.
   Toasts con sonner; éxito breve ("Venta registrada").
 - Copy: es-AR, voseo, verbos directos ("Cobrar", "Reponer", "Anular").
@@ -182,6 +190,28 @@ NO SF Symbols. Animación: Motion (`motion/react`), con moderación: el
   igual patrón que un color picker, el usuario ve el tema antes de tocarlo.
   Cuatro: Claro/Oscuro/Negro + "Sistema" (preview partido en diagonal
   claro/oscuro con ícono `Monitor`).
+
+## Ticket impreso
+
+Rollo térmico de 80mm (`@page { size: 80mm auto }`), monoespaciada, SIEMPRE
+negro sobre blanco: no usa tokens de tema (en Negro el papel saldría un
+rectángulo de tinta). Separadores de guiones, TOTAL en 16px bold, pie "No
+válido como factura".
+
+Mecanismo: `printTicket(venta, nombreDelKiosco)` encola; `<TicketPrintArea>`
+(montado una vez en el shell) lo renderiza en un portal a `<body>` con id
+`#kios-print-root`, y el CSS de impresión oculta todos los demás hijos
+directos de body — incluidos los portales de Radix — así sale el ticket solo.
+
+Se dispara con `setTimeout`, NUNCA con `requestAnimationFrame`: con la
+ventana minimizada u oculta el navegador pausa los rAF y la impresión se
+perdería en silencio (verificado: `visibilityState: "hidden"` → 0 llamadas).
+
+Dónde: opción "Imprimir ticket al cobrar" en el diálogo de cobro (se
+recuerda en `meta.print_on_sale`); con la opción apagada el toast de éxito
+ofrece "Imprimir" a un clic, para no frenar la caja. En el detalle de una
+venta, botón "Imprimir ticket" — también en ventas anuladas (el ticket sale
+marcado ANULADA, que es justamente el comprobante útil).
 
 ## Accesibilidad (piso, no techo)
 

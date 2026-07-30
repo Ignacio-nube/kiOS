@@ -15,3 +15,16 @@ apps/app/src-tauri/gen/
 # Íconos móviles que genera `tauri icon` — el proyecto es desktop-only.
 apps/app/src-tauri/icons/android/
 apps/app/src-tauri/icons/ios/
+
+# Instaladores sueltos en la raíz. Nada que pese decenas de MB y no sea
+# fuente tiene por qué entrar al repo (GitHub rechaza >100MB y, una vez
+# commiteado, queda en la historia aunque después se borre).
+/*.exe
+/*.msi
+/*.dmg
+
+# Bundle de handoff de Claude Design. El diseño ya está implementado en
+# apps/landing, así que acá sería una copia que envejece sola — y el nombre
+# choca con el del repo kiOS-landing, que es otra cosa. Queda en disco por
+# si hace falta consultarlo; si lo querés versionar, sacá esta línea.
+/kiOS-landing/
