@@ -1,6 +1,6 @@
 ---
 name: kios-design
-description: Design system de kiOS (POS para kioscos argentinos). Leer SIEMPRE antes de crear o modificar UI en apps/app o apps/landing — define tokens, componentes, reglas de color/tipografía y patrones de pantalla.
+description: Design system de kiOS (POS para kioscos argentinos). Leer SIEMPRE antes de crear o modificar UI en la app (apps/app) o en la landing (repo Ignacio-nube/kiOS-landing) — define tokens, componentes, reglas de color/tipografía y patrones de pantalla.
 ---
 
 # kios-design — el sistema visual de kiOS

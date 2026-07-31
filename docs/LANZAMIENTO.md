@@ -61,25 +61,37 @@ evento **Pagos**.
 | Variable | Qué es |
 |---|---|
 | `RESEND_API_KEY` | API key |
-| `MAIL_FROM` | Remitente verificado, ej. `kiOS <hola@kios.com.ar>` |
+| `MAIL_FROM` | Remitente verificado, ej. `kiOS <hola@kios.click>` |
 
-Hay que **verificar el dominio** en Resend y publicar los registros
-**SPF + DKIM + DMARC**. Sin eso, el mail con el código de activación cae
-en spam — y ese mail es el único lugar donde el cliente va a tener su
-licencia.
+Hay que **verificar el dominio** `kios.click` en Resend y publicar los
+registros **SPF + DKIM + DMARC**. Sin eso, el mail con el código de
+activación cae en spam — y ese mail es el único lugar donde el cliente va
+a tener su licencia.
 
-### 4. Dominio y deploy
+### 4. Dominios y deploy
+
+Dos repos, dos proyectos de Vercel:
+
+| Repo | Proyecto | Dominio |
+|---|---|---|
+| `Ignacio-nube/kiOS-landing` | landing | `kios.click` |
+| `Ignacio-nube/kiOS` (root `apps/app`) | demo web | `demo.kios.click` |
+
+Variables de la landing:
 
 | Variable | Qué es |
 |---|---|
-| `PUBLIC_SITE_URL` | `https://kios.com.ar` — arma los `back_urls` de MP |
-| `VITE_DEMO_URL` | URL de la demo web desplegada |
+| `PUBLIC_SITE_URL` | `https://kios.click` — arma los `back_urls` y el `notification_url` de MP |
+| `VITE_DEMO_URL` | `https://demo.kios.click` |
 | `VITE_DOWNLOAD_URL` | Instalador firmado |
 | `VITE_SUPPORT_EMAIL` | Casilla de soporte |
 
 Sin `VITE_DEMO_URL` y `VITE_DOWNLOAD_URL` los CTA de la landing se ven
 apagados y no hacen nada (a propósito: mejor un botón que admite que no
 está listo que uno que lleva a un 404).
+
+La demo **necesita** los headers COOP/COEP de `apps/app/vercel.json`: sin
+ellos SQLite WASM no puede usar OPFS y los datos se pierden al recargar.
 
 ### 5. Instalador de escritorio firmado
 

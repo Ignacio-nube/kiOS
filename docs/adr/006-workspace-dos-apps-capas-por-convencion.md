@@ -29,3 +29,23 @@ Vercel: dos proyectos sobre el mismo repo (root `apps/app` con
 - Si mañana hiciera falta compartir código con otra app real (móvil),
   recién ahí se extraen packages — con las fronteras ya marcadas por las
   carpetas y el linter.
+
+## Actualización — 2026-07-30: la landing se fue a su propio repo
+
+`apps/landing` ya no vive acá: es **Ignacio-nube/kiOS-landing**, con su
+propio `package.json`, su lock y su proyecto de Vercel.
+
+Motivo: dejó de ser "estático, sin React". Ahora tiene React, Motion y
+funciones serverless con secretos de Mercado Pago y de envío de mail — o
+sea, un ciclo de deploy y una superficie de seguridad propios. Y en la
+práctica no comparte NADA de código con la app: el único punto de contacto
+es el formato de licencia, que la landing ya no necesita desde que el
+servidor dejó de firmar (solo reenvía un código emitido a mano).
+
+Lo que sigue valiendo de esta ADR: las capas por convención dentro de
+`apps/app`, custodiadas por eslint. Lo que cambia: el workspace tiene una
+sola app, y `scripts/generate-assets.mjs` escribe los favicons de la
+landing solo si encuentra ese repo clonado al lado (o `KIOS_LANDING_DIR`).
+La regla de fuente única del logo no se rompe — `logo-kiOS.svg` de este
+repo sigue mandando sobre los dos, pero ahora hay que commitear en dos
+lados.
