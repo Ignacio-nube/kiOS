@@ -32,20 +32,39 @@ Vercel: dos proyectos sobre el mismo repo (root `apps/app` con
 
 ## Actualización — 2026-07-30: la landing se fue a su propio repo
 
-`apps/landing` ya no vive acá: es **Ignacio-nube/kiOS-landing**, con su
-propio `package.json`, su lock y su proyecto de Vercel.
+*(Revertida el mismo día. Se deja anotada porque explica por qué el
+`vercel.json` de la raíz existe y por qué `api/` no está dentro de
+`apps/landing`.)*
 
-Motivo: dejó de ser "estático, sin React". Ahora tiene React, Motion y
-funciones serverless con secretos de Mercado Pago y de envío de mail — o
-sea, un ciclo de deploy y una superficie de seguridad propios. Y en la
-práctica no comparte NADA de código con la app: el único punto de contacto
-es el formato de licencia, que la landing ya no necesita desde que el
-servidor dejó de firmar (solo reenvía un código emitido a mano).
+Se separó `apps/landing` a **Ignacio-nube/kiOS-landing** con la idea de que
+ya no era "estático, sin React" y tenía secretos propios.
 
-Lo que sigue valiendo de esta ADR: las capas por convención dentro de
-`apps/app`, custodiadas por eslint. Lo que cambia: el workspace tiene una
-sola app, y `scripts/generate-assets.mjs` escribe los favicons de la
-landing solo si encuentra ese repo clonado al lado (o `KIOS_LANDING_DIR`).
-La regla de fuente única del logo no se rompe — `logo-kiOS.svg` de este
-repo sigue mandando sobre los dos, pero ahora hay que commitear en dos
-lados.
+**Por qué se volvió atrás**: el costo real no estaba en el código sino en
+la operación. Dos repos son dos proyectos de Vercel, dos juegos de
+variables de entorno y dos dominios que mantener sincronizados, para un
+producto que hace una sola persona. La ganancia teórica de aislar el
+deploy no compensaba ese trabajo recurrente.
+
+## Actualización — 2026-07-30 (2): todo vuelve a un repo y a UN deploy
+
+Vuelve `apps/landing`, y además ahora **hay un solo proyecto de Vercel**
+para todo:
+
+- `/` → la landing
+- `/demo` → la demo web (misma app que el escritorio, driver wasm)
+- `/api/*` → checkout y webhook de Mercado Pago
+
+Tres consecuencias que hay que respetar:
+
+1. **`api/` vive en la RAÍZ del repo**, no bajo `apps/landing`. Es donde
+   Vercel busca las funciones cuando el proyecto no tiene Root Directory.
+2. **La demo se compila con `base=/demo/`** (`VITE_BASE_PATH` en
+   `scripts/build-vercel.mjs`). Con el default `/`, su HTML pediría los
+   assets a la raíz, que ahí sirve la landing: pantalla en blanco.
+3. **COOP/COEP van scopeados a `/demo`**, no a todo el sitio. La demo los
+   necesita para `SharedArrayBuffer` (VFS de OPFS); la landing no, y
+   aislarla de más solo agrega formas de romperla.
+
+Lo que sigue valiendo de la ADR original: las capas por convención dentro
+de `apps/app`, custodiadas por eslint, y la regla de fuente única del logo
+— que vuelve a ser trivial porque los dos destinos están en este repo.

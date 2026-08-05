@@ -4,9 +4,6 @@ Gestión para kioscos argentinos: vender rápido, llevar el stock, fiar y ver
 cuánto se vendió hoy. Escritorio (Tauri + SQLite local) con demo 100% en el
 navegador. Sin cuentas ni internet obligatoria.
 
-La landing (**kios.click**) vive en un repo aparte:
-**[Ignacio-nube/kiOS-landing](https://github.com/Ignacio-nube/kiOS-landing)**.
-
 ## Estructura
 
 ```
@@ -16,25 +13,34 @@ apps/app        la app (escritorio Y demo web: mismo bundle, driver en runtime)
   src/ui        design system propio + shadcn selectivo (ui/shadcn)
   src/features  pantallas
   src-tauri     shell Rust (plugins sql + fs)
-scripts/license firmador y verificador de códigos de activación
+apps/landing    kios.click — la página que vende (React + Vite + Motion)
+api/            funciones serverless del flujo de compra (Mercado Pago)
+scripts/        assets del logo, builds y firmador de licencias
 docs/adr        decisiones de arquitectura (leer 003: esquema sync-ready)
-docs/LANZAMIENTO.md  qué falta para vender
+docs/LANZAMIENTO.md   qué falta para vender
 kios-design     skill del design system — leer antes de tocar UI
 ```
+
+`api/` está en la raíz y no dentro de `apps/landing` porque es ahí donde
+Vercel busca las funciones cuando el proyecto no tiene Root Directory.
 
 ## Comandos (desde la raíz)
 
 ```
-npm run dev            # demo web en http://localhost:1420
+npm run dev            # app / demo web en http://localhost:1420
+npm run dev:landing    # landing en http://localhost:1430
 npm run tauri dev      # app de escritorio
-npm test               # unit + integración (vitest + better-sqlite3)
-npm run bench          # benchmarks de los ledgers (stock y cuenta corriente)
-npm run lint           # eslint (incluye las reglas de capas)
-npm run build:web      # build de la demo (deploy Vercel, root apps/app)
 
-npm run license:keygen                    # par Ed25519 (una vez en la vida)
-npm run license:sign -- "kiOS"            # emite un código de activación
-npm run license:verify -- "KIOS-…"        # valida contra la clave de la app
+npm test               # tests de la app + de api/
+npm run lint           # eslint (incluye las reglas de capas)
+npm run typecheck      # landing + api/
+
+npm run build:vercel   # arma dist/ con la landing en / y la demo en /demo
+npm run build:installer  # instalador de Windows, listo para Google Drive
+
+npm run license:keygen             # par Ed25519 (una vez en la vida)
+npm run license:sign -- "kiOS"     # emite un código de activación
+npm run license:verify -- "KIOS-…" # valida contra la clave de la app
 ```
 
 ## Reglas no negociables
@@ -49,9 +55,21 @@ npm run license:verify -- "KIOS-…"        # valida contra la clave de la app
 
 ## Deploy
 
-Proyecto Vercel sobre este repo con Root Directory `apps/app` y build
-`npm run build:web`. Los headers COOP/COEP de `apps/app/vercel.json` no son
-opcionales: sin ellos SQLite WASM no puede usar OPFS y la demo pierde los
-datos al recargar.
+**Un solo proyecto de Vercel** sobre este repo, sin Root Directory. El
+`vercel.json` de la raíz ya trae el build command, la salida y los headers;
+no hay que configurar nada en la interfaz salvo las variables de entorno
+(ver `.env.example`).
 
-Dominio: `demo.kios.click`.
+| Ruta | Qué sirve |
+|---|---|
+| `/` | la landing |
+| `/demo` | la demo web |
+| `/api/*` | checkout y webhook de Mercado Pago |
+
+Los headers COOP/COEP sobre `/demo` **no son opcionales**: sin ellos no hay
+`SharedArrayBuffer`, el VFS de OPFS no arranca y la demo cuelga o pierde
+los datos al recargar. Van scopeados a `/demo` para no aislar la landing de
+más.
+
+Después del deploy hay que dar de alta el webhook en Mercado Pago apuntando
+a `https://kios.click/api/webhook`, evento **Pagos**.

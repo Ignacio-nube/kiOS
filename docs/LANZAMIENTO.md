@@ -68,40 +68,53 @@ registros **SPF + DKIM + DMARC**. Sin eso, el mail con el código de
 activación cae en spam — y ese mail es el único lugar donde el cliente va
 a tener su licencia.
 
-### 4. Dominios y deploy
+### 4. Dominio y deploy
 
-Dos repos, dos proyectos de Vercel:
+**Un solo proyecto de Vercel**, sobre `Ignacio-nube/kiOS`, **sin Root
+Directory**. El `vercel.json` de la raíz ya trae el build command, la
+salida y los headers: en la interfaz solo hay que cargar las variables.
 
-| Repo | Proyecto | Dominio |
-|---|---|---|
-| `Ignacio-nube/kiOS-landing` | landing | `kios.click` |
-| `Ignacio-nube/kiOS` (root `apps/app`) | demo web | `demo.kios.click` |
-
-Variables de la landing:
+| Ruta | Qué sirve |
+|---|---|
+| `kios.click/` | la landing |
+| `kios.click/demo` | la demo web |
+| `kios.click/api/*` | checkout y webhook de Mercado Pago |
 
 | Variable | Qué es |
 |---|---|
 | `PUBLIC_SITE_URL` | `https://kios.click` — arma los `back_urls` y el `notification_url` de MP |
-| `VITE_DEMO_URL` | `https://demo.kios.click` |
-| `VITE_DOWNLOAD_URL` | Instalador firmado |
+| `VITE_DOWNLOAD_URL` | Link directo al instalador en Google Drive |
 | `VITE_SUPPORT_EMAIL` | Casilla de soporte |
 
-Sin `VITE_DEMO_URL` y `VITE_DOWNLOAD_URL` los CTA de la landing se ven
-apagados y no hacen nada (a propósito: mejor un botón que admite que no
-está listo que uno que lleva a un 404).
+`VITE_DEMO_URL` **no hace falta**: el default es `/demo`, del mismo
+dominio. Sin `VITE_DOWNLOAD_URL` el botón de descarga se ve apagado con el
+motivo, en vez de llevar a un 404.
 
-La demo **necesita** los headers COOP/COEP de `apps/app/vercel.json`: sin
-ellos SQLite WASM no puede usar OPFS y los datos se pierden al recargar.
+Los headers COOP/COEP sobre `/demo` no son opcionales: sin ellos no hay
+`SharedArrayBuffer`, el VFS de OPFS no arranca y la demo cuelga o pierde
+los datos al recargar. Ya están en `vercel.json`, scopeados a `/demo` para
+no aislar la landing de más.
 
 ### 5. Instalador de escritorio firmado
 
-Hoy no hay release. Y **sin firma de código**, Windows SmartScreen muestra
+```bash
+npm run build:installer
+```
+
+Deja el `.exe` en `apps/app/src-tauri/target/release/bundle/nsis/` e
+imprime su SHA-256 y las instrucciones para publicarlo en Google Drive
+(hay que armar un link de descarga DIRECTA; el de la vista previa de Drive
+no sirve para un botón de descarga).
+
+Falta lo caro: **sin firma de código**, Windows SmartScreen muestra
 "Windows protegió tu PC" y la mayoría de la gente cancela ahí.
 
 - Certificado **OV o EV** para firmar el `.exe` (Sectigo, DigiCert; ~US$200-400/año).
 - Configurar `tauri.conf.json` → `bundle.windows.certificateThumbprint`.
 - La reputación de SmartScreen se construye con descargas: los primeros
   días avisa igual aunque esté firmado.
+- Mientras tanto, publicar el SHA-256 al lado del link es lo único que le
+  permite a alguien verificar que bajó lo que vos subiste.
 
 ---
 

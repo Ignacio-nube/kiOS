@@ -3,22 +3,32 @@
   "private": true,
   "version": "0.1.0",
   "workspaces": [
-    "apps/app"
+    "apps/app",
+    "apps/landing"
   ],
   "scripts": {
     "assets": "node scripts/generate-assets.mjs",
     "dev": "npm run dev -w apps/app",
-    "build:web": "npm run build:web -w apps/app",
+    "dev:landing": "npm run dev -w apps/landing",
     "tauri": "npm run tauri -w apps/app",
-    "test": "npm test -w apps/app",
+    "build:web": "npm run build:web -w apps/app",
+    "build:landing": "npm run build -w apps/landing",
+    "build:vercel": "node scripts/build-vercel.mjs",
+    "build:installer": "node scripts/build-installer.mjs",
+    "test": "npm test -w apps/app && vitest run",
+    "test:api": "vitest run",
     "bench": "npm run bench -w apps/app",
     "lint": "npm run lint -w apps/app",
+    "typecheck": "npm run typecheck -w apps/landing && tsc -p tsconfig.api.json --noEmit",
     "license:keygen": "node scripts/license/keygen.mjs",
     "license:sign": "tsx scripts/license/sign.mts",
     "license:verify": "tsx scripts/license/verify.mts"
   },
   "devDependencies": {
+    "@types/node": "^26.1.1",
     "sharp": "^0.35.3",
-    "tsx": "^4.23.0"
+    "tsx": "^4.23.0",
+    "typescript": "~5.8.3",
+    "vitest": "^4.1.10"
   }
 }

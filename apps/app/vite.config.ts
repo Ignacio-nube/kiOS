@@ -30,6 +30,18 @@ function sqliteAwareAssetNames(assetInfo: { names: string[] }): string {
 export default defineConfig({
   plugins: [react(), tailwindcss()],
 
+  /**
+   * La demo web se publica bajo `/demo` del mismo dominio que la landing
+   * (un solo proyecto de Vercel), así que sus assets tienen que pedirse
+   * como `/demo/assets/…`. Con el default `/` el HTML cargaría desde la
+   * raíz, que ahí sirve la landing: pantalla en blanco y 404 de JS.
+   *
+   * Entra por entorno y no fijo, porque los otros dos targets necesitan
+   * `/`: Tauri carga desde el sistema de archivos y el dev server sirve
+   * en la raíz. Solo `build:vercel` lo define.
+   */
+  base: process.env.VITE_BASE_PATH ?? "/",
+
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

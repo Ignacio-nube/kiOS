@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "types": ["vite/client"]
+  },
+  // Solo `src`. Las funciones serverless viven en `api/` de la RAÍZ del
+  // repo (que es donde Vercel las busca) y se chequean con
+  // `tsconfig.api.json`, porque corren en otro runtime.
+  "include": ["src"]
+}

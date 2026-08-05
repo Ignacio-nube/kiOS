@@ -1,6 +1,6 @@
 {
   "$schema": "../../../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "kios",
+  "productName": "kiOS",
   "version": "0.1.0",
   "identifier": "ar.kios.app",
   "build": {
@@ -27,7 +27,12 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["nsis"],
+    "publisher": "kiOS",
+    "copyright": "© 2026 kiOS",
+    "category": "Business",
+    "shortDescription": "Punto de venta para kioscos y almacenes",
+    "longDescription": "Punto de venta pensado para el mostrador real: escaneás el código, se agrega solo al ticket y cobrás en segundos. Lleva el stock, las cuentas de fiado y el cierre de caja. Todo se guarda en tu computadora.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -35,6 +40,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["Spanish", "SpanishInternational"],
+        "displayLanguageSelector": false
+      }
+    },
     "android": {
       "debugApplicationIdSuffix": ".debug"
     }

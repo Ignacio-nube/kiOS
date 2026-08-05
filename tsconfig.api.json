@@ -1,0 +1,18 @@
+{
+  "//": "Typecheck de las funciones serverless de api/. Aparte del tsconfig de cada app porque corren en el runtime de Vercel, no en el navegador ni en Tauri.",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "types": ["node"]
+  },
+  "include": ["api"]
+}
