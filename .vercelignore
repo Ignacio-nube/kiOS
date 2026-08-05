@@ -1,0 +1,13 @@
+# Vercel convierte CADA archivo de `api/` en un endpoint público. Sin esta
+# exclusión, `api/webhook.test.ts` se publicaría como /api/webhook.test —
+# y como importa vitest, que no es dependencia de producción, además
+# rompería el build.
+#
+# (Los de `api/_lib/` ya quedan afuera por el guion bajo: Vercel ignora lo
+# que empieza con `_`. Se excluyen igual para no depender de ese detalle.)
+**/*.test.ts
+
+# El shell de Rust y la documentación no participan del build del sitio.
+# `scripts/` NO se excluye: ahí vive build-vercel.mjs, que es el build.
+apps/app/src-tauri/
+docs/
