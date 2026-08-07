@@ -1,4 +1,5 @@
-import { SUPPORT_EMAIL } from "../lib/config";
+import { MessageCircle } from "lucide-react";
+import { SALES_MODE, SUPPORT_EMAIL, WHATSAPP_DISPLAY, whatsappLink } from "../lib/config";
 
 const LINKS = [
   { href: "#funciones", label: "Funciones" },
@@ -6,6 +7,8 @@ const LINKS = [
   { href: "#empezar", label: "Cómo empezar" },
   { href: "#demo", label: "Demo" },
 ];
+
+const SOPORTE_MESSAGE = "¡Hola! Tengo una consulta sobre kiOS.";
 
 export function Footer() {
   return (
@@ -19,7 +22,7 @@ export function Footer() {
           </span>
         </div>
 
-        <nav className="flex flex-wrap gap-7">
+        <nav className="flex flex-wrap items-center gap-7">
           {LINKS.map((link) => (
             <a
               key={link.href}
@@ -29,12 +32,29 @@ export function Footer() {
               {link.label}
             </a>
           ))}
-          <a
-            href={`mailto:${SUPPORT_EMAIL}`}
-            className="text-sm text-dimmer transition-colors hover:text-ink"
-          >
-            Soporte
-          </a>
+
+          {/* Mientras se venda a mano, el soporte es el mismo WhatsApp por
+              el que se compra. Un `mailto:` a una casilla del dominio sería
+              un contacto muerto hasta que el mail esté configurado, y un
+              contacto muerto es peor que ninguno. */}
+          {SALES_MODE === "whatsapp" ? (
+            <a
+              href={whatsappLink(SOPORTE_MESSAGE)}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1.5 text-sm text-dimmer transition-colors hover:text-ink"
+            >
+              <MessageCircle className="size-4" />
+              {WHATSAPP_DISPLAY}
+            </a>
+          ) : (
+            <a
+              href={`mailto:${SUPPORT_EMAIL}`}
+              className="text-sm text-dimmer transition-colors hover:text-ink"
+            >
+              Soporte
+            </a>
+          )}
         </nav>
 
         <p className="text-[13px] text-faint">© {new Date().getFullYear()} kiOS.</p>

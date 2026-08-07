@@ -7,6 +7,23 @@ Cada punto dice **por qué** bloquea, no solo qué hacer. Los ✅ ya están.
 
 ---
 
+## Cómo se vende hoy
+
+**A mano, por WhatsApp** (`SALES_MODE = "whatsapp"` en
+`apps/landing/src/lib/config.ts`). El botón de Precios abre un chat al
+381 401-2380 con el mensaje ya escrito; la transferencia y la entrega del
+código se coordinan ahí.
+
+Eso mueve **Mercado Pago y Resend de bloqueantes a opcionales**: se puede
+empezar a vender sin ninguno de los dos. El checkout automático está
+escrito y testeado esperando; se enciende cambiando esa constante a
+`"mercadopago"`, sin tocar nada más.
+
+Lo que **sí** sigue siendo bloqueante es emitir el código: sin eso no hay
+nada que entregar después de la transferencia.
+
+---
+
 ## 🔴 Bloqueantes: sin esto no se puede cobrar
 
 ### 1. Generar las claves y emitir el código compartido
@@ -37,7 +54,7 @@ Detalle completo en `scripts/license/README.md`.
 
 ✅ Ya está: firmador, verificador, el mecanismo de constancia y los tests.
 
-### 2. Credenciales de Mercado Pago
+### 2. Credenciales de Mercado Pago *(solo si automatizás la venta)*
 
 En **Tus integraciones → Credenciales de producción**:
 
@@ -56,7 +73,7 @@ evento **Pagos**.
 **Probá primero en sandbox** con las credenciales de prueba y las
 [tarjetas de test](https://www.mercadopago.com.ar/developers/es/docs/checkout-pro/additional-content/your-integrations/test/cards).
 
-### 3. Envío de mail (Resend)
+### 3. Envío de mail (Resend) *(solo si automatizás la venta)*
 
 | Variable | Qué es |
 |---|---|
@@ -83,12 +100,16 @@ salida y los headers: en la interfaz solo hay que cargar las variables.
 | Variable | Qué es |
 |---|---|
 | `PUBLIC_SITE_URL` | `https://kios.click` — arma los `back_urls` y el `notification_url` de MP |
-| `VITE_DOWNLOAD_URL` | Link directo al instalador en Google Drive |
-| `VITE_SUPPORT_EMAIL` | Casilla de soporte |
 
-`VITE_DEMO_URL` **no hace falta**: el default es `/demo`, del mismo
-dominio. Sin `VITE_DOWNLOAD_URL` el botón de descarga se ve apagado con el
-motivo, en vez de llevar a un 404.
+Con la venta a mano **no hace falta configurar ninguna variable**:
+`VITE_DEMO_URL` (default `/demo`) y `VITE_DOWNLOAD_URL` (default: el link
+de Drive) ya tienen valor en `config.ts`. Definilas solo para apuntar a
+otro lado.
+
+> ⚠️ El link de Drive lleva `&confirm=t`. Ese parámetro no es decorativo:
+> sin él, Drive devuelve la página "Virus scan warning" en vez del archivo
+> — le pasa a **todo `.exe`**, sin importar el tamaño. Y el link que Drive
+> da al compartir (`/file/d/<id>/view`) abre la vista previa, no descarga.
 
 Los headers COOP/COEP sobre `/demo` no son opcionales: sin ellos no hay
 `SharedArrayBuffer`, el VFS de OPFS no arranca y la demo cuelga o pierde
@@ -141,12 +162,12 @@ generar licencias de más — pero **sí puede mandar el mail dos veces**.
 Molesto, no grave. La solución prolija es un KV (Vercel KV / Upstash)
 marcando `payment_id` ya procesado.
 
-### 9. Registro de ventas fuera del sistema
+### 9. Registro de ventas
 
-No hay ningún registro propio de a quién se le vendió. Si alguien pierde el
-mail, la única fuente es el panel de Mercado Pago + reemitir con
-`npm run license:sign`. Funciona, pero es a mano. Una planilla o un KV con
-`{fecha, nombre, mail, payment_id}` ahorra mucho soporte.
+No hay ningún registro propio de a quién se le vendió. Vendiendo a mano
+queda el chat de WhatsApp y el comprobante de la transferencia, que
+alcanza para arrancar — pero una planilla con `{fecha, nombre, contacto,
+monto}` te va a ahorrar mucho cuando alguien escriba "perdí el código".
 
 ### 10. Legales
 

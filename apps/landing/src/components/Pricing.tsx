@@ -8,13 +8,25 @@
  * se quemó con un sistema de gestión por suscripción.
  */
 import { useState } from "react";
-import { Check } from "lucide-react";
+import { Check, MessageCircle } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
-import { FREE_PRODUCT_LIMIT, PRICE_ARS, downloadCta, formatARS } from "../lib/config";
+import {
+  FREE_PRODUCT_LIMIT, PRICE_ARS, SALES_MODE, WHATSAPP_DISPLAY,
+  downloadCta, formatARS, whatsappLink,
+} from "../lib/config";
 import { revealUp, stagger } from "../lib/motion";
 import { Reveal, RevealGroup } from "./Reveal";
 import { Cta } from "./Cta";
 import { BuyDialog } from "./BuyDialog";
+
+/**
+ * El mensaje con el que arranca el chat. Menciona el producto y el precio
+ * para que la conversación empiece donde tiene que empezar: acordar la
+ * transferencia, no explicar de nuevo qué se está comprando.
+ */
+const WHATSAPP_MESSAGE =
+  `¡Hola! Quiero comprar kiOS Activado (${formatARS(PRICE_ARS)}). ` +
+  "¿Me pasás los datos para la transferencia?";
 
 const FREE = [
   `Hasta ${FREE_PRODUCT_LIMIT} productos cargados`,
@@ -96,19 +108,45 @@ export function Pricing() {
             ))}
           </ul>
 
-          <button
-            onClick={() => setBuying(true)}
-            className="mt-8 w-full rounded-xl bg-brand py-3.5 font-bold text-brand-ink shadow-[0_8px_30px_-8px_rgb(253_191_45/0.55)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-hover"
-          >
-            Comprar código de activación
-          </button>
-          <p className="mt-3 text-center text-xs text-faint">
-            Pagás con Mercado Pago y te llega el código por mail.
-          </p>
+          {SALES_MODE === "whatsapp" ? (
+            <>
+              <a
+                href={whatsappLink(WHATSAPP_MESSAGE)}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-3.5 font-bold text-brand-ink shadow-[0_8px_30px_-8px_rgb(253_191_45/0.55)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-hover"
+              >
+                <MessageCircle className="size-[18px]" />
+                Comprar por WhatsApp
+              </a>
+              {/* Decir de antemano que atiende una persona, y con qué
+                  número: nadie escribe a un WhatsApp que no sabe de quién
+                  es, y menos para mandar plata. */}
+              <p className="mt-3 text-center text-xs text-faint">
+                Coordinamos la transferencia y te paso el código.
+                <br />
+                WhatsApp {WHATSAPP_DISPLAY}.
+              </p>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => setBuying(true)}
+                className="mt-8 w-full rounded-xl bg-brand py-3.5 font-bold text-brand-ink shadow-[0_8px_30px_-8px_rgb(253_191_45/0.55)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-hover"
+              >
+                Comprar código de activación
+              </button>
+              <p className="mt-3 text-center text-xs text-faint">
+                Pagás con Mercado Pago y te llega el código por mail.
+              </p>
+            </>
+          )}
         </motion.div>
       </RevealGroup>
 
-      <BuyDialog open={buying} onClose={() => setBuying(false)} />
+      {SALES_MODE === "mercadopago" && (
+        <BuyDialog open={buying} onClose={() => setBuying(false)} />
+      )}
     </section>
   );
 }
