@@ -8,6 +8,7 @@
  */
 import { createPreference } from "./_lib/mercadopago";
 import { priceARS } from "./_lib/price";
+import { resolveSiteUrl } from "./_lib/site-url";
 
 export const config = { runtime: "edge" };
 
@@ -21,13 +22,35 @@ export default async function handler(request: Request): Promise<Response> {
   if (request.method !== "POST") return json({ error: "Método no permitido" }, 405);
 
   const accessToken = process.env.MP_ACCESS_TOKEN;
-  const siteUrl = process.env.PUBLIC_SITE_URL;
-  if (!accessToken || !siteUrl) {
+  if (!accessToken) {
     // Falta configuración del servidor: no es culpa del comprador y no
     // tiene nada que hacer al respecto, así que el mensaje no lo culpa.
-    console.error("checkout: falta MP_ACCESS_TOKEN o PUBLIC_SITE_URL");
+    console.error("checkout: falta MP_ACCESS_TOKEN");
     return json({ error: "La compra no está disponible en este momento." }, 503);
   }
+
+  // El origen sale del pedido, no de una variable escrita a mano: ver el
+  // comentario de `_lib/site-url.ts`, que explica el bug del `www`.
+  const { url: siteUrl, mismatch } = resolveSiteUrl(request);
+  if (mismatch) {
+    console.warn(
+      "checkout: PUBLIC_SITE_URL no coincide con el origen real. " +
+        "Se usa el real; revisá la variable en Vercel.",
+      mismatch,
+    );
+  }
+
+  /**
+   * A dónde va a notificar Mercado Pago. Se loguea SIEMPRE y completa,
+   * porque cuando el webhook no llega no hay ninguna otra forma de saber
+   * qué URL se le pasó: MP no reporta el error de entrega en ningún lado
+   * visible, simplemente no notifica.
+   *
+   * Tiene que verse exactamente así, sin redirects de por medio:
+   *   https://www.kios.click/api/webhook
+   */
+  const notificationUrl = `${siteUrl}/api/webhook`;
+  console.log("checkout: notification_url", notificationUrl);
 
   let body: { name?: unknown; email?: unknown };
   try {

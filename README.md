@@ -93,5 +93,32 @@ conozca — incluido el truco de meter una clave `"//"`. Las razones van acá.
   `vite.config` de la app). Cachearlos para siempre dejaría la demo clavada
   en una versión vieja.
 
-Después del deploy hay que dar de alta el webhook en Mercado Pago apuntando
-a `https://kios.click/api/webhook`, evento **Pagos**.
+### Notificaciones de Mercado Pago
+
+`api/checkout.ts` manda un `notification_url` en cada preferencia, y según
+la [documentación de MP](https://www.mercadopago.com.ar/developers/es/docs/checkout-pro/additional-content/your-integrations/notifications/webhooks)
+**ése tiene precedencia** sobre lo que se configure en el panel. Registrar
+el webhook en *Tus integraciones → tu app → Webhooks* (evento **Pagos**) es
+opcional, pero conviene: cubre preferencias creadas por fuera de este
+código.
+
+> ⚠️ **La trampa del `www`.** Mercado Pago **no sigue redirects** al
+> notificar. Si el `notification_url` apunta a un host que responde 301/308
+> —por ejemplo `kios.click` cuando el canónico en Vercel es
+> `www.kios.click`— la notificación **nunca llega**, MP no reporta el error
+> en ningún lado, y en los logs no aparece ni un solo hit al webhook. Es
+> exactamente esto lo que pasó la primera vez.
+>
+> Por eso el origen ya **no** sale de `PUBLIC_SITE_URL` sino del pedido que
+> llega al servidor (`api/_lib/site-url.ts`): si el comprador está en el
+> host canónico, ése es el que se usa. `PUBLIC_SITE_URL` quedó solo como
+> señal — si difiere, se avisa en los logs.
+>
+> Para verificarlo: `/api/checkout` loguea `checkout: notification_url …`
+> en cada compra. Tiene que decir el host canónico, sin barra final.
+
+**Red de seguridad**: si el webhook igual no llega, `/gracias` llama a
+`POST /api/claim` con el `payment_id` que MP pone en la URL de vuelta. Ese
+endpoint reconsulta el pago contra la API de MP y, si está aprobado y por
+el monto correcto, manda el código. No le cree nada al navegador: el mail
+de destino sale del `external_reference` guardado al crear la preferencia.
