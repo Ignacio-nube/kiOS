@@ -106,23 +106,44 @@ export default async function handler(request: Request): Promise<Response> {
       return json({ status: "manual" });
     }
 
-    await sendLicenseEmail({
-      to: buyer.email,
-      customer: buyer.name,
-      licenseKey,
-      from: mailFrom,
-      apiKey: resendKey,
-      supportEmail,
-    });
+    /**
+     * A partir de acá el pago está CONFIRMADO contra la API de MP: aprobado
+     * y por el monto correcto. Recién con eso se devuelve el código.
+     *
+     * Que viaje al navegador es deliberado. El mail puede fallar —Resend
+     * caído, dominio sin verificar, la casilla mal escrita por el propio
+     * comprador— y el peor resultado posible de todo este flujo es que
+     * alguien pague y se quede sin nada. Mostrarlo en pantalla lo elimina.
+     *
+     * No agrega exposición: el código es UNO SOLO para todos y ya está
+     * publicado en docs/CODIGO-ACTIVACION.md de un repo público. Y no sale
+     * de los parámetros de la URL —que cualquiera puede inventar— sino de
+     * una verificación contra Mercado Pago con nuestro access token.
+     */
+    try {
+      await sendLicenseEmail({
+        to: buyer.email,
+        customer: buyer.name,
+        licenseKey,
+        from: mailFrom,
+        apiKey: resendKey,
+        supportEmail,
+      });
+    } catch (cause) {
+      // El mail falló pero el pago es válido: se devuelve el código igual.
+      // Esto es lo que separa "el cliente pagó y no tiene nada" de "el
+      // cliente pagó y tiene su código aunque el mail no salga".
+      console.error("claim: el pago es válido pero el mail no salió", { paymentId, cause });
+      return json({ status: "email_failed", licenseKey });
+    }
 
     console.log("claim: licencia enviada por la vía de respaldo", {
       paymentId,
       to: buyer.email,
     });
-    // Se devuelve el mail para que /gracias pueda decir "te lo mandamos a
-    // v***@ejemplo.com" y el comprador sepa dónde mirar. Va enmascarado:
-    // la respuesta la puede ver cualquiera que tenga el payment_id.
-    return json({ status: "sent", email: maskEmail(buyer.email) });
+    // El mail va enmascarado (la respuesta la ve cualquiera con el id);
+    // el código va entero, por lo explicado arriba.
+    return json({ status: "sent", email: maskEmail(buyer.email), licenseKey });
   } catch (cause) {
     console.error("claim: fallo procesando el pago", { paymentId, cause });
     return json({ status: "error" }, 502);

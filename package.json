@@ -22,7 +22,8 @@
     "typecheck": "npm run typecheck -w apps/landing && tsc --noEmit",
     "license:keygen": "node scripts/license/keygen.mjs",
     "license:sign": "tsx scripts/license/sign.mts",
-    "license:verify": "tsx scripts/license/verify.mts"
+    "license:verify": "tsx scripts/license/verify.mts",
+    "email:test": "tsx scripts/test-email.mts"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",

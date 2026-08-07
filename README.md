@@ -122,3 +122,25 @@ código.
 endpoint reconsulta el pago contra la API de MP y, si está aprobado y por
 el monto correcto, manda el código. No le cree nada al navegador: el mail
 de destino sale del `external_reference` guardado al crear la preferencia.
+
+Además **muestra el código en pantalla**, no solo lo manda por mail. El
+peor resultado de todo el flujo es que alguien pague y se quede sin nada,
+y el mail falla por cosas que no controlamos (Resend caído, dominio sin
+verificar, la casilla mal escrita por el propio comprador). Se muestra
+recién después de que MP confirmó el pago, y no agrega exposición: el
+código es uno solo para todos y ya está en `docs/CODIGO-ACTIVACION.md`.
+
+### Probar el mail sin hacer una compra
+
+```bash
+RESEND_API_KEY=re_… MAIL_FROM="kiOS <info@kios.click>" \
+  npm run email:test -- vos@ejemplo.com
+```
+
+Manda el mail real —mismo template, mismo remitente, y el código leído de
+`docs/CODIGO-ACTIVACION.md`— sin pasar por Mercado Pago. Sirve para separar
+"falla el webhook" de "falla Resend", que es imposible de distinguir
+mirando solo el resultado final.
+
+> Si Resend rechaza con 403 o solo llegan mails a tu propia casilla, es que
+> el dominio todavía no está verificado ahí.

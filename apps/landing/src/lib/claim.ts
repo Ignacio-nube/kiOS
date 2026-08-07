@@ -13,8 +13,10 @@ export type ClaimStatus =
   /** Todavía no se sabe (no hay payment_id en la URL). */
   | { kind: "idle" }
   | { kind: "checking" }
-  /** El código salió; `email` viene enmascarado por el servidor. */
-  | { kind: "sent"; email: string }
+  /** El mail salió. `email` viene enmascarado por el servidor. */
+  | { kind: "sent"; email: string; licenseKey: string }
+  /** El pago es válido pero el mail no salió: el código se muestra igual. */
+  | { kind: "email_failed"; licenseKey: string }
   /** El pago existe pero no está acreditado todavía. */
   | { kind: "pending" }
   /** Algo no cierra y hay que mirarlo a mano. */
@@ -41,12 +43,18 @@ export async function claimLicense(paymentId: string): Promise<ClaimStatus> {
       body: JSON.stringify({ paymentId }),
     });
     const data = (await response.json().catch(() => null)) as
-      | { status?: string; email?: string }
+      | { status?: string; email?: string; licenseKey?: string }
       | null;
 
     switch (data?.status) {
       case "sent":
-        return { kind: "sent", email: data.email ?? "" };
+        return {
+          kind: "sent",
+          email: data.email ?? "",
+          licenseKey: data.licenseKey ?? "",
+        };
+      case "email_failed":
+        return { kind: "email_failed", licenseKey: data.licenseKey ?? "" };
       case "pending":
         return { kind: "pending" };
       case "manual":

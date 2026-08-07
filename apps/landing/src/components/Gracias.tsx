@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import { AlertCircle, CheckCircle2, Clock, Inbox, LifeBuoy, Loader2 } from "lucide-react";
 import { SUPPORT_EMAIL, WHATSAPP_DISPLAY, whatsappLink } from "../lib/config";
 import { claimLicense, paymentIdFromUrl, type ClaimStatus } from "../lib/claim";
+import { CodigoActivacion } from "./CodigoActivacion";
 
 const PASOS = [
   {
@@ -51,13 +52,33 @@ function EstadoDelEnvio({ estado }: { estado: ClaimStatus }) {
 
   if (estado.kind === "sent") {
     return (
-      <div className={`${comun} border-ok/30 bg-ok/10 text-ink`}>
-        <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-ok" />
-        <span>
-          Listo: el código salió a <strong>{estado.email}</strong>. Si no lo ves en unos
-          minutos, revisá Spam.
-        </span>
-      </div>
+      <>
+        <div className={`${comun} border-ok/30 bg-ok/10 text-ink`}>
+          <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-ok" />
+          <span>
+            Listo: el código salió a <strong>{estado.email}</strong>. Si no lo ves en unos
+            minutos, revisá Spam.
+          </span>
+        </div>
+        {estado.licenseKey && <CodigoActivacion licenseKey={estado.licenseKey} />}
+      </>
+    );
+  }
+
+  // El pago está confirmado pero el mail no salió. Es exactamente el caso
+  // para el que existe mostrar el código: el comprador no se queda sin nada.
+  if (estado.kind === "email_failed") {
+    return (
+      <>
+        <div className={`${comun} border-brand/30 bg-brand/10 text-ink`}>
+          <AlertCircle className="mt-0.5 size-5 shrink-0 text-brand" />
+          <span>
+            Tu pago está confirmado, pero el mail no pudo salir. No te preocupes: acá abajo
+            está tu código. Guardalo ahora.
+          </span>
+        </div>
+        {estado.licenseKey && <CodigoActivacion licenseKey={estado.licenseKey} />}
+      </>
     );
   }
 
