@@ -78,7 +78,7 @@ export const FREE_PRODUCT_LIMIT = 50;
  * El camino de Mercado Pago queda ENTERO y testeado — cambiar esta línea
  * a `"mercadopago"` lo enciende, sin tocar nada más.
  */
-export const SALES_MODE: "whatsapp" | "mercadopago" = "whatsapp";
+export const SALES_MODE: "whatsapp" | "mercadopago" = "mercadopago";
 
 /**
  * Número de WhatsApp en formato internacional, sin `+` ni separadores.
