@@ -11,7 +11,7 @@ Cada punto dice **por qué** bloquea, no solo qué hacer. Los ✅ ya están.
 
 **A mano, por WhatsApp** (`SALES_MODE = "whatsapp"` en
 `apps/landing/src/lib/config.ts`). El botón de Precios abre un chat al
-381 401-2380 con el mensaje ya escrito; la transferencia y la entrega del
+381 339-3590 con el mensaje ya escrito; la transferencia y la entrega del
 código se coordinan ahí.
 
 Eso mueve **Mercado Pago y Resend de bloqueantes a opcionales**: se puede
@@ -26,33 +26,26 @@ nada que entregar después de la transferencia.
 
 ## 🔴 Bloqueantes: sin esto no se puede cobrar
 
-### 1. Generar las claves y emitir el código compartido
+### 1. ✅ Claves y código de activación — HECHO
 
-`apps/app/src/domain/license.ts` todavía tiene la clave pública
-**placeholder (64 ceros)**. Con eso, *ninguna* licencia funciona: la app
-rechaza cualquier código y degrada a plan gratis en silencio.
+El par Ed25519 está generado, la clave pública embebida en
+`apps/app/src/domain/license.ts` y el código emitido y verificado contra
+esa misma clave. Está en `docs/CODIGO-ACTIVACION.md`.
 
-```bash
-npm run license:keygen                                   # una sola vez
-LICENSE_PRIVATE_KEY_HEX=… npm run license:sign -- "kiOS" # el código compartido
-npm run license:verify -- "KIOS-…"                       # antes de publicarlo
-```
+**Lo único que queda de tu lado**: la clave privada quedó en
+`.license-keys.local` (ignorado por git). **Movela a tu gestor de
+contraseñas y borrá ese archivo.** Si la perdés no podés emitir códigos
+nuevos ni rotar — hay que generar un par nuevo y publicar una versión de
+la app con la pública nueva.
 
-- La **pública** va a `apps/app/src/domain/license.ts`.
-- La **privada** va a tu gestor de contraseñas. **No** al hosting.
-- El **código** emitido va a `SHARED_LICENSE_KEY` en el hosting.
+> ⚠️ El código está commiteado en un repo **público**. Es coherente con el
+> modelo (un código compartido que igual va a circular), pero significa que
+> es buscable. Si preferís que no esté, borrá ese archivo: la app no lo lee
+> de ningún lado.
 
-> El servidor no firma nada: solo reenvía ese código por mail. Por eso la
-> clave privada no necesita existir ahí — si te entran al hosting se llevan
-> un código que ya circula, no la máquina de fabricar códigos.
-
-**Rotación** (cuando el código circule demasiado): claves nuevas → app
-nueva → código nuevo → actualizar `SHARED_LICENSE_KEY`. Los clientes que ya
-activaron **no se ven afectados**: la app exige la verificación una sola
-vez y después guarda una constancia local (`meta.license_activation`).
-Detalle completo en `scripts/license/README.md`.
-
-✅ Ya está: firmador, verificador, el mecanismo de constancia y los tests.
+**Rotación**, cuando circule demasiado: claves nuevas → versión nueva de la
+app → código nuevo. Los clientes que ya activaron **no se ven afectados**
+gracias a `meta.license_activation`. Detalle en `scripts/license/README.md`.
 
 ### 2. Credenciales de Mercado Pago *(solo si automatizás la venta)*
 
@@ -102,30 +95,26 @@ salida y los headers: en la interfaz solo hay que cargar las variables.
 | `PUBLIC_SITE_URL` | `https://kios.click` — arma los `back_urls` y el `notification_url` de MP |
 
 Con la venta a mano **no hace falta configurar ninguna variable**:
-`VITE_DEMO_URL` (default `/demo`) y `VITE_DOWNLOAD_URL` (default: el link
-de Drive) ya tienen valor en `config.ts`. Definilas solo para apuntar a
-otro lado.
-
-> ⚠️ El link de Drive lleva `&confirm=t`. Ese parámetro no es decorativo:
-> sin él, Drive devuelve la página "Virus scan warning" en vez del archivo
-> — le pasa a **todo `.exe`**, sin importar el tamaño. Y el link que Drive
-> da al compartir (`/file/d/<id>/view`) abre la vista previa, no descarga.
+`VITE_DEMO_URL` (default `/demo`) y `VITE_DOWNLOAD_URL` (default: el asset
+de la release de GitHub) ya tienen valor en `config.ts`. Definilas solo
+para apuntar a otro lado.
 
 Los headers COOP/COEP sobre `/demo` no son opcionales: sin ellos no hay
 `SharedArrayBuffer`, el VFS de OPFS no arranca y la demo cuelga o pierde
 los datos al recargar. Ya están en `vercel.json`, scopeados a `/demo` para
 no aislar la landing de más.
 
-### 5. Instalador de escritorio firmado
+### 5. Firma de código del instalador
+
+El instalador ya está publicado como release de GitHub (`v0.1.0`), y ése es
+el link que usa el botón de descarga. Para sacar una versión nueva:
 
 ```bash
-npm run build:installer
+npm run build:installer   # compila e imprime el SHA-256
 ```
 
-Deja el `.exe` en `apps/app/src-tauri/target/release/bundle/nsis/` e
-imprime su SHA-256 y las instrucciones para publicarlo en Google Drive
-(hay que armar un link de descarga DIRECTA; el de la vista previa de Drive
-no sirve para un botón de descarga).
+…subir el `.exe` como asset de una release nueva y actualizar el tag en
+`DOWNLOAD_URL` (`apps/landing/src/lib/config.ts`).
 
 Falta lo caro: **sin firma de código**, Windows SmartScreen muestra
 "Windows protegió tu PC" y la mayoría de la gente cancela ahí.

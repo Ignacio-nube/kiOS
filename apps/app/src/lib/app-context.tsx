@@ -94,7 +94,10 @@ async function readActivation(repos: Repositories): Promise<LicensePayload | nul
  * licencias (ADR-005): fricción honesta para clientes honestos, sin
  * ofuscación ni phone-home.
  */
-async function resolveLicense(repos: Repositories, isDesktop: boolean): Promise<LicenseState> {
+export async function resolveLicense(
+  repos: Repositories,
+  isDesktop: boolean,
+): Promise<LicenseState> {
   if (!isDesktop) return DEMO_LICENSE;
 
   const key = await repos.meta.get(META_KEYS.licenseKey);

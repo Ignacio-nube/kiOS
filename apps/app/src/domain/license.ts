@@ -10,9 +10,19 @@
  */
 import { verifyAsync } from "@noble/ed25519";
 
-/** Clave pública Ed25519 (hex). Se regenera con scripts/license/keygen.mjs. */
+/**
+ * Clave PÚBLICA Ed25519 (hex). Es pública de verdad: va embebida en cada
+ * copia de la app y solo sirve para VERIFICAR, no para firmar.
+ *
+ * Su par privado no está en este repo (ni tiene por qué estar en ningún
+ * servidor: el backend no firma, solo reenvía un código ya emitido).
+ *
+ * ⚠ Cambiar este valor invalida todas las licencias emitidas con el par
+ * anterior — para quien active DE CERO. Los que ya activaron siguen
+ * andando gracias a `meta.license_activation`. Ver scripts/license/README.
+ */
 export const LICENSE_PUBLIC_KEY_HEX =
-  "0000000000000000000000000000000000000000000000000000000000000000"; // PLACEHOLDER: sin clave real emitida aún
+  "4d8fd16fe88fc4824a7fbffa7b3398b8ece170b46d84d200a813db1521be352e";
 
 export interface LicensePayload {
   /** Nombre del cliente (se muestra en Configuración). */

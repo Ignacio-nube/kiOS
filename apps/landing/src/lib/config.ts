@@ -19,19 +19,19 @@
 export const DEMO_URL = (import.meta.env.VITE_DEMO_URL as string | undefined) ?? "/demo";
 
 /**
- * Instalador de escritorio.
+ * Instalador de escritorio: el asset de la release de GitHub.
  *
- * El default apunta a Google Drive con `confirm=t`. Ese parámetro NO es
- * decorativo: sin él, Drive devuelve la página "Google Drive - Virus scan
- * warning" en vez del archivo. Le pasa a todo `.exe`, sin importar el
- * tamaño — verificado contra este mismo ID.
+ * Se eligió sobre Google Drive por dos razones concretas: Drive intercala
+ * una página de "Virus scan warning" ante cualquier `.exe` (hay que
+ * sortearla con `&confirm=t`), y el link no queda atado a una versión. Acá
+ * la URL lleva el tag adentro, así que `v0.1.0` va a servir siempre ese
+ * binario aunque después se publique otro.
  *
- * Tampoco sirve el link que Drive da al compartir (`/file/d/<id>/view`):
- * ése abre la vista previa, no descarga nada.
+ * Al sacar una versión nueva hay que actualizar el tag de esta URL.
  */
 export const DOWNLOAD_URL =
   (import.meta.env.VITE_DOWNLOAD_URL as string | undefined) ??
-  "https://drive.usercontent.google.com/download?id=1xWit7d6IUSE7PhHFW4kZZzeke3qzpyBQ&export=download&confirm=t";
+  "https://github.com/Ignacio-nube/kiOS/releases/download/v0.1.0/kiOS_0.1.0_x64-setup.exe";
 
 /** Contacto de soporte que se muestra en el pie y en el mail de compra. */
 export const SUPPORT_EMAIL =
@@ -70,10 +70,10 @@ export const SALES_MODE: "whatsapp" | "mercadopago" = "whatsapp";
  *
  *   54  9  381  4012380   →   +54 9 381 401-2380
  */
-export const WHATSAPP_NUMBER = "5493814012380";
+export const WHATSAPP_NUMBER = "5493813393590";
 
 /** Cómo se muestra el número en pantalla (legible, no para el link). */
-export const WHATSAPP_DISPLAY = "381 401-2380";
+export const WHATSAPP_DISPLAY = "381 339-3590";
 
 /**
  * Chat con el mensaje ya escrito. Que el visitante no tenga que redactar
