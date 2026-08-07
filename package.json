@@ -19,7 +19,7 @@
     "test:api": "vitest run",
     "bench": "npm run bench -w apps/app",
     "lint": "npm run lint -w apps/app",
-    "typecheck": "npm run typecheck -w apps/landing && tsc -p tsconfig.api.json --noEmit",
+    "typecheck": "npm run typecheck -w apps/landing && tsc --noEmit",
     "license:keygen": "node scripts/license/keygen.mjs",
     "license:sign": "tsx scripts/license/sign.mts",
     "license:verify": "tsx scripts/license/verify.mts"

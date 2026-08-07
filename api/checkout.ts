@@ -6,8 +6,8 @@
  * en el body, cualquiera abriría las herramientas del navegador y compraría
  * la licencia por un peso.
  */
-import { createPreference } from "./_lib/mercadopago.ts";
-import { priceARS } from "./_lib/price.ts";
+import { createPreference } from "./_lib/mercadopago";
+import { priceARS } from "./_lib/price";
 
 export const config = { runtime: "edge" };
 

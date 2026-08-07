@@ -1,0 +1,28 @@
+{
+  // Typecheck de las funciones serverless de `api/`.
+  //
+  // Está en la RAÍZ y se llama `tsconfig.json` a propósito: es el archivo
+  // que Vercel busca para compilar las funciones. Antes se llamaba
+  // `tsconfig.api.json` y Vercel lo ignoraba, así que las typecheckeaba con
+  // sus defaults y fallaba con opciones que solo estaban acá.
+  //
+  // Alcance acotado a `api/`: cada app tiene su propio tsconfig y su propio
+  // runtime (navegador y Tauri para la app, navegador para la landing).
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    // `types` explícito: sin esto TypeScript levanta TODO lo que haya en
+    // node_modules/@types del workspace y las funciones terminan viendo
+    // tipos de React que no les corresponden.
+    "types": ["node"]
+  },
+  "include": ["api"]
+}

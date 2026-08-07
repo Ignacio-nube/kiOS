@@ -27,9 +27,9 @@
  * manda duplicados por diseño. Como el código es una constante, reintentar
  * no puede generar licencias de más; lo único que se duplica es el mail.
  */
-import { fetchPayment, isValidSignature } from "./_lib/mercadopago.ts";
-import { sendLicenseEmail } from "./_lib/email.ts";
-import { priceARS } from "./_lib/price.ts";
+import { fetchPayment, isValidSignature } from "./_lib/mercadopago";
+import { sendLicenseEmail } from "./_lib/email";
+import { priceARS } from "./_lib/price";
 
 export const config = { runtime: "edge" };
 
