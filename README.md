@@ -55,10 +55,16 @@ npm run license:verify -- "KIOS-…" # valida contra la clave de la app
 
 ## Deploy
 
-**Un solo proyecto de Vercel** sobre este repo, sin Root Directory. El
-`vercel.json` de la raíz ya trae el build command, la salida y los headers;
-no hay que configurar nada en la interfaz salvo las variables de entorno
-(ver `.env.example`).
+**Un solo proyecto de Vercel** sobre este repo.
+
+> ⚠️ **Root Directory: vacío** (la raíz del repo). Es el error más fácil de
+> cometer y el más confuso de diagnosticar: si apunta a `apps/app`, Vercel
+> no ve la landing, ni `api/`, ni este `vercel.json` — despliega solo la
+> demo y todo lo demás "desaparece" sin ningún error.
+
+El `vercel.json` de la raíz ya trae build command, salida y headers; en la
+interfaz solo se cargan las variables de entorno (importá `.env.example`
+directo desde *Settings → Environment Variables → Import .env*).
 
 | Ruta | Qué sirve |
 |---|---|
@@ -66,10 +72,26 @@ no hay que configurar nada en la interfaz salvo las variables de entorno
 | `/demo` | la demo web |
 | `/api/*` | checkout y webhook de Mercado Pago |
 
-Los headers COOP/COEP sobre `/demo` **no son opcionales**: sin ellos no hay
-`SharedArrayBuffer`, el VFS de OPFS no arranca y la demo cuelga o pierde
-los datos al recargar. Van scopeados a `/demo` para no aislar la landing de
-más.
+### Por qué el `vercel.json` es como es
+
+No tiene comentarios porque **no puede**: JSON no los soporta, y Vercel
+valida el archivo contra un esquema que rechaza cualquier propiedad que no
+conozca — incluido el truco de meter una clave `"//"`. Las razones van acá.
+
+- **COOP/COEP en `/demo`**: sin esos dos headers no hay
+  `SharedArrayBuffer`, el VFS de OPFS de sqlite-wasm no arranca, y la demo
+  cuelga en el spinner o pierde los datos al recargar. Van scopeados a
+  `/demo` a propósito: la landing no los necesita y aislarla de más solo
+  agrega formas de romperla. Están duplicados para `/demo` y `/demo/:path*`
+  porque el documento se sirve con y sin barra final.
+- **Rewrite de `/gracias`**: es el `back_url` de Mercado Pago y la landing
+  es un SPA de un solo `index.html`. Sin esto, el cliente que acaba de
+  pagar se come un 404.
+- **`cache-control` inmutable solo en `/assets`, no en `/demo/assets`**:
+  los de la landing llevan hash en el nombre, pero `sqlite3.wasm` y
+  `sqlite3-opfs-async-proxy.js` salen SIN hash a propósito (ver el
+  `vite.config` de la app). Cachearlos para siempre dejaría la demo clavada
+  en una versión vieja.
 
 Después del deploy hay que dar de alta el webhook en Mercado Pago apuntando
 a `https://kios.click/api/webhook`, evento **Pagos**.

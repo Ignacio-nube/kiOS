@@ -3,26 +3,14 @@
   "buildCommand": "npm run build:vercel",
   "outputDirectory": "dist",
   "framework": null,
-
   "rewrites": [
     {
-      "//": "/gracias es el back_url de Mercado Pago y la landing es un SPA de un solo index.html. Sin esto, el cliente que acaba de pagar se come un 404.",
       "source": "/gracias",
       "destination": "/index.html"
     }
   ],
-
   "headers": [
     {
-      "//": "SIN ESTOS DOS HEADERS LA DEMO NO ARRANCA. sqlite-wasm necesita SharedArrayBuffer para el VFS de OPFS, y el navegador solo lo habilita en documentos aislados (cross-origin isolation). Sin ellos la demo cuelga en el spinner o pierde los datos al recargar. Van SOLO en /demo: la landing no los necesita y aislarla de más solo agrega formas de romperla.",
-      "source": "/demo/:path*",
-      "headers": [
-        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
-        { "key": "Cross-Origin-Embedder-Policy", "value": "require-corp" }
-      ]
-    },
-    {
-      "//": "El documento de la demo servido sin barra final.",
       "source": "/demo",
       "headers": [
         { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
@@ -30,7 +18,13 @@
       ]
     },
     {
-      "//": "Assets de la LANDING: todos llevan hash en el nombre, así que son inmutables. Ojo, esta regla NO cubre /demo/assets a propósito: ahí sqlite3.wasm y sqlite3-opfs-async-proxy.js salen SIN hash (ver vite.config de la app) y cachearlos para siempre dejaría a la demo clavada en una versión vieja.",
+      "source": "/demo/:path*",
+      "headers": [
+        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
+        { "key": "Cross-Origin-Embedder-Policy", "value": "require-corp" }
+      ]
+    },
+    {
       "source": "/assets/(.*)",
       "headers": [{ "key": "cache-control", "value": "public, max-age=31536000, immutable" }]
     },
