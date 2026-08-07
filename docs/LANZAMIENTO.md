@@ -71,7 +71,7 @@ evento **Pagos**.
 | Variable | Qué es |
 |---|---|
 | `RESEND_API_KEY` | API key |
-| `MAIL_FROM` | Remitente verificado, ej. `kiOS <hola@kios.click>` |
+| `MAIL_FROM` | Remitente verificado, ej. `kiOS <info@kios.click>` |
 
 Hay que **verificar el dominio** `kios.click` en Resend y publicar los
 registros **SPF + DKIM + DMARC**. Sin eso, el mail con el código de

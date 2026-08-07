@@ -42,7 +42,7 @@ export default async function handler(request: Request): Promise<Response> {
     SHARED_LICENSE_KEY: licenseKey,
     RESEND_API_KEY: resendKey,
     MAIL_FROM: mailFrom,
-    VITE_SUPPORT_EMAIL: supportEmail = "hola@kios.click",
+    VITE_SUPPORT_EMAIL: supportEmail = "info@kios.click",
   } = process.env;
 
   if (!accessToken || !webhookSecret || !licenseKey || !resendKey || !mailFrom) {

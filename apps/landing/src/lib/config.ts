@@ -35,7 +35,7 @@ export const DOWNLOAD_URL =
 
 /** Contacto de soporte que se muestra en el pie y en el mail de compra. */
 export const SUPPORT_EMAIL =
-  (import.meta.env.VITE_SUPPORT_EMAIL as string | undefined) ?? "hola@kios.click";
+  (import.meta.env.VITE_SUPPORT_EMAIL as string | undefined) ?? "info@kios.click";
 
 /**
  * Precio de la licencia EN PESOS ENTEROS, editable desde Vercel con
