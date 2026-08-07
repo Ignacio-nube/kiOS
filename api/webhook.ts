@@ -29,11 +29,9 @@
  */
 import { fetchPayment, isValidSignature } from "./_lib/mercadopago.ts";
 import { sendLicenseEmail } from "./_lib/email.ts";
+import { priceARS } from "./_lib/price.ts";
 
 export const config = { runtime: "edge" };
-
-/** Espeja `PRICE_ARS` de checkout.ts y de src/lib/config.ts. */
-const PRICE_ARS = 35_000;
 
 export default async function handler(request: Request): Promise<Response> {
   if (request.method !== "POST") return new Response("Método no permitido", { status: 405 });
@@ -95,10 +93,16 @@ export default async function handler(request: Request): Promise<Response> {
     }
 
     // Un pago aprobado por menos de lo que vale la licencia no la paga.
-    if (payment.transaction_amount < PRICE_ARS) {
+    // Misma variable que usó el checkout para cobrar: si alguien baja el
+    // precio, los pagos viejos por MÁS siguen valiendo; si lo sube, los
+    // que ya pagaron el anterior no se ven afectados porque su pago ya
+    // fue procesado.
+    const esperado = priceARS();
+    if (payment.transaction_amount < esperado) {
       console.error("webhook: monto insuficiente", {
         paymentId: payment.id,
         amount: payment.transaction_amount,
+        esperado,
       });
       return new Response("ok", { status: 200 });
     }

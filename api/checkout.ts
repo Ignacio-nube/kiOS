@@ -7,12 +7,9 @@
  * la licencia por un peso.
  */
 import { createPreference } from "./_lib/mercadopago.ts";
+import { priceARS } from "./_lib/price.ts";
 
 export const config = { runtime: "edge" };
-
-/** Espeja `PRICE_ARS` de `src/lib/config.ts`. Los dos números tienen que
- *  ser el mismo: uno es el cartel y el otro es lo que se cobra. */
-const PRICE_ARS = 35_000;
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -61,7 +58,10 @@ export default async function handler(request: Request): Promise<Response> {
   try {
     const url = await createPreference({
       title: "kiOS Activado — licencia de uso permanente",
-      priceARS: PRICE_ARS,
+      // Lee VITE_PRICE_ARS, la MISMA variable que muestra la landing. Si
+      // está mal escrita lanza acá, antes de crear la preferencia: mejor
+      // que el checkout falle a que cobre un precio que nadie decidió.
+      priceARS: priceARS(),
       externalReference,
       payerEmail: email,
       siteUrl,

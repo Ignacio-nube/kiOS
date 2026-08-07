@@ -38,11 +38,30 @@ export const SUPPORT_EMAIL =
   (import.meta.env.VITE_SUPPORT_EMAIL as string | undefined) ?? "hola@kios.click";
 
 /**
- * Precio de la licencia EN PESOS ENTEROS. Vive acá y no en la copy suelta
- * porque lo lee tanto el cartel de Precios como el checkout de Mercado
- * Pago: si divergen, el usuario ve un precio y paga otro.
+ * Precio de la licencia EN PESOS ENTEROS, editable desde Vercel con
+ * `VITE_PRICE_ARS`.
+ *
+ * La MISMA variable la lee el servidor en `api/_lib/price.ts` para cobrar.
+ * Que sean una sola es lo que hace imposible el peor caso: que el cartel
+ * diga un número y Mercado Pago cobre otro. (Un `VITE_` se lee igual desde
+ * el servidor: el prefijo decide qué se expone al navegador, no dónde se
+ * puede leer.)
+ *
+ * Se escribe en dígitos pelados: `35000`. Con punto de miles —`35.000`— el
+ * servidor lo rechaza en vez de cobrar 35 pesos; acá se cae al default por
+ * el mismo motivo. Cambiarlo requiere **redesplegar**: el valor se hornea
+ * en el bundle al compilar.
  */
-export const PRICE_ARS = 35_000;
+export const PRICE_ARS = parsePrice(import.meta.env.VITE_PRICE_ARS as string | undefined);
+
+/** Espeja `priceARS` de `api/_lib/price.ts`. Ver el test de allá. */
+function parsePrice(raw: string | undefined): number {
+  const text = raw?.trim() ?? "";
+  // Solo dígitos: `Number("35.000")` daría 35 y mostraría un precio absurdo.
+  if (!/^\d+$/.test(text)) return 35_000;
+  const value = Number(text);
+  return Number.isSafeInteger(value) && value > 0 ? value : 35_000;
+}
 
 /** Tope de productos del plan gratis. Espeja `domain/entitlements.ts`. */
 export const FREE_PRODUCT_LIMIT = 50;
